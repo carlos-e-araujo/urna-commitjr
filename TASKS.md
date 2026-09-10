@@ -77,7 +77,7 @@ flowchart TD
 ### 🌊 ONDA 1: Fundação, Infraestrutura & Setup Base (Agente 1)
 > *Nota: Esta onda deve ser concluída antes do início das trilhas paralelas da Onda 2.*
 
-#### `[ ]` TASK-101: Inicialização do Next.js 14+ com App Router, TypeScript e Tailwind CSS
+#### `[x]` TASK-101: Inicialização do Next.js 14+ com App Router, TypeScript e Tailwind CSS
 - **Objetivo:** Criar o scaffold base do projeto mantendo os arquivos de configuração existentes (`AGENTS.md`, `ESCOPO.md`, `.gitignore`, `.agents/`).
 - **Dependências:** Nenhuma.
 - **Arquivos:** `package.json`, `tsconfig.json`, `tailwind.config.ts`, `postcss.config.js`, `src/app/layout.tsx`, `src/app/globals.css`.
