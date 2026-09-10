@@ -141,7 +141,7 @@ flowchart TD
   - Estado visual de "VOTO EM BRANCO" e "NÚMERO ERRADO / VOTO NULO".
 - **Commit:** `feat(ui): implementa layout responsivo sem scroll e display lcd da urna`
 
-#### `[ ]` TASK-203: Teclado Virtual Numérico e Teclas de Ação + Suporte a Teclado Físico
+#### `[x]` TASK-203: Teclado Virtual Numérico e Teclas de Ação + Suporte a Teclado Físico
 - **Objetivo:** Implementar o teclado característico da urna com os botões numéricos (0 a 9) e botões de ação (BRANCO, CORRIGE, CONFIRMA), com feedback sonoro e visual.
 - **Dependências:** `TASK-201`, `TASK-202`.
 - **Arquivos:** `src/components/urna/Keypad.tsx`, `src/components/urna/KeyButton.tsx`, `src/hooks/usePhysicalKeyboard.ts`.
