@@ -25,7 +25,7 @@ export interface UseVotingMachineOptions {
   candidates?: CandidateVoteData[];
   roles?: string[];
   digitsPerRole?: number;
-  onFinish?: (votes: VoteRecord[]) => Promise<void> | void;
+  onFinish?: (votes: VoteRecord[]) => Promise<boolean | void> | boolean | void;
 }
 
 const DEFAULT_ROLES = [
@@ -129,18 +129,22 @@ export function useVotingMachine(options: UseVotingMachineOptions = {}) {
       setIsBlank(false);
     } else {
       // Last role confirmed -> Finalize voting
-      setIsFinal(true);
-      soundEffects.playEndSound();
-
       if (options.onFinish) {
         setIsSubmitting(true);
         try {
-          await options.onFinish(updatedVotes);
+          const result = await options.onFinish(updatedVotes);
+          if (result !== false) {
+            setIsFinal(true);
+            soundEffects.playEndSound();
+          }
         } catch {
           // Handled by consumer
         } finally {
           setIsSubmitting(false);
         }
+      } else {
+        setIsFinal(true);
+        soundEffects.playEndSound();
       }
     }
   }, [

@@ -253,7 +253,7 @@ flowchart TD
 ### 🌊 ONDA 3: Integração, Homologação & QA (Agente 5)
 > *Nota: Esta onda unifica as entregas das Trilhas A, B e C.*
 
-#### `[ ]` TASK-501: Integração Ponta a Ponta (Frontend Urna + APIs Reais)
+#### `[x]` TASK-501: Integração Ponta a Ponta (Frontend Urna + APIs Reais)
 - **Objetivo:** Conectar a interface da urna (`/`) com os endpoints `/api/election/active`, `/api/vote/check` e `/api/vote`.
 - **Dependências:** `TASK-204`, `TASK-304`.
 - **Arquivos:** `src/app/page.tsx`, `src/hooks/useVotingMachine.ts`.
