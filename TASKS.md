@@ -194,7 +194,7 @@ flowchart TD
   - Transação resiliente a concorrência de ~30 requisições simultâneas.
 - **Commit:** `feat(vote): implementa submissao de votos atomica com anonimato`
 
-#### `[ ]` TASK-304: Mecanismo Multicamada Anti-Voto Duplicado
+#### `[x]` TASK-304: Mecanismo Multicamada Anti-Voto Duplicado
 - **Objetivo:** Implementar prevenção robusta contra votos repetidos utilizando Cookie `HttpOnly`, `LocalStorage` e registro anônimo de presença (`voter_records`).
 - **Dependências:** `TASK-303`.
 - **Arquivos:** `src/lib/voting/voterProtection.ts`, `src/app/api/vote/check/route.ts`.
