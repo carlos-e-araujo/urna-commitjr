@@ -3,6 +3,7 @@ import { db, elections, candidates, votes, voterRecords } from "@/lib/db";
 import { eq, desc, count } from "drizzle-orm";
 import { ElectionResults } from "@/types/database";
 import { hasNeonDatabaseUrl, readLocalDb } from "@/lib/db/localStore";
+import { sortRoles } from "@/lib/services/candidateService";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,8 @@ export async function GET(request: NextRequest) {
 
     const candidateRoles = allCandidates.map((c) => c.role);
     const voteRoles = allVotes.map((v) => v.role);
-    const distinctRoles = Array.from(new Set([...candidateRoles, ...voteRoles]));
+    const rawRoles = Array.from(new Set([...candidateRoles, ...voteRoles]));
+    const distinctRoles = sortRoles(rawRoles);
 
     const resultsByRole: ElectionResults["resultsByRole"] = {};
 
@@ -83,7 +85,11 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      candidateResults.sort((a, b) => b.votes - a.votes);
+      // Ordena por votos decrescente e depois por número
+      candidateResults.sort((a, b) => {
+        if (b.votes !== a.votes) return b.votes - a.votes;
+        return a.number.localeCompare(b.number);
+      });
 
       resultsByRole[role] = {
         role,

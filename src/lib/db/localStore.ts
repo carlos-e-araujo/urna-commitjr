@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import seedData from "../../data/seed-candidatos.json";
 
 export interface LocalDbData {
   elections: Array<{
@@ -41,9 +40,30 @@ export interface LocalDbData {
 const DATA_DIR = path.join(process.cwd(), ".data");
 const DB_FILE = path.join(DATA_DIR, "local-db.json");
 
-const DEFAULT_ELECTION_ID = "election-commitjr-2026-default";
+export const DEFAULT_ELECTION_ID = "election-commitjr-2026-default";
 
-function getInitialData(): LocalDbData {
+export const OFFICIAL_SEED_CANDIDATES = [
+  {
+    nome: "André Guilherme",
+    numero: "29",
+    cargo: "Presidente",
+    foto_url: "/assets/candidates/andre_guilherme.jpeg",
+  },
+  {
+    nome: "Arthur Cordeiro",
+    numero: "07",
+    cargo: "Vice-Presidente",
+    foto_url: "/assets/candidates/arthur_cordeiro.jpeg",
+  },
+  {
+    nome: "João Vitor",
+    numero: "42",
+    cargo: "Diretor de Gestão e Gente",
+    foto_url: "/assets/candidates/joao_vitor.jpeg",
+  },
+];
+
+export function getInitialData(): LocalDbData {
   const now = new Date().toISOString();
   return {
     elections: [
@@ -56,7 +76,7 @@ function getInitialData(): LocalDbData {
         createdAt: now,
       },
     ],
-    candidates: seedData.map((c, index) => ({
+    candidates: OFFICIAL_SEED_CANDIDATES.map((c, index) => ({
       id: `candidate-${index + 1}`,
       electionId: DEFAULT_ELECTION_ID,
       name: c.nome,
@@ -83,7 +103,7 @@ export function readLocalDb(): LocalDbData {
     }
     const content = fs.readFileSync(DB_FILE, "utf-8");
     const parsed = JSON.parse(content);
-    if (!parsed.elections || !parsed.candidates) {
+    if (!parsed.elections || !parsed.candidates || parsed.candidates.length === 0) {
       const initial = getInitialData();
       fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2), "utf-8");
       return initial;
@@ -103,6 +123,27 @@ export function writeLocalDb(data: LocalDbData): void {
   } catch (error) {
     console.error("Erro ao gravar local DB:", error);
   }
+}
+
+export function resetLocalCandidatesToOfficial(electionId?: string): LocalDbData {
+  const local = readLocalDb();
+  const targetId = electionId || local.elections[0]?.id || DEFAULT_ELECTION_ID;
+  const now = new Date().toISOString();
+
+  // Remove candidatos da eleição atual e reinsere os oficiais
+  local.candidates = OFFICIAL_SEED_CANDIDATES.map((c, index) => ({
+    id: `candidate-${index + 1}`,
+    electionId: targetId,
+    name: c.nome,
+    number: c.numero,
+    role: c.cargo,
+    photoUrl: c.foto_url,
+    createdAt: now,
+    updatedAt: now,
+  }));
+
+  writeLocalDb(local);
+  return local;
 }
 
 export function hasNeonDatabaseUrl(): boolean {
