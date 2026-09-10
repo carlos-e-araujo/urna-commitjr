@@ -1,9 +1,9 @@
 [
   {
-    "nome": "André Guilherme",
-    "numero": "29",
+    "nome": "João Vitor",
+    "numero": "42",
     "cargo": "Presidente",
-    "foto_url": "/assets/candidates/andre_guilherme.jpeg"
+    "foto_url": "/assets/candidates/joao_vitor.jpeg"
   },
   {
     "nome": "Arthur Cordeiro",
@@ -12,9 +12,9 @@
     "foto_url": "/assets/candidates/arthur_cordeiro.jpeg"
   },
   {
-    "nome": "João Vitor",
-    "numero": "42",
+    "nome": "André Guilherme",
+    "numero": "29",
     "cargo": "Diretor de Gestão e Gente",
-    "foto_url": "/assets/candidates/joao_vitor.jpeg"
+    "foto_url": "/assets/candidates/andre_guilherme.jpeg"
   }
 ]

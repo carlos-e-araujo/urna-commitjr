@@ -44,10 +44,10 @@ export const DEFAULT_ELECTION_ID = "election-commitjr-2026-default";
 
 export const OFFICIAL_SEED_CANDIDATES = [
   {
-    nome: "André Guilherme",
-    numero: "29",
+    nome: "João Vitor",
+    numero: "42",
     cargo: "Presidente",
-    foto_url: "/assets/candidates/andre_guilherme.jpeg",
+    foto_url: "/assets/candidates/joao_vitor.jpeg",
   },
   {
     nome: "Arthur Cordeiro",
@@ -56,10 +56,10 @@ export const OFFICIAL_SEED_CANDIDATES = [
     foto_url: "/assets/candidates/arthur_cordeiro.jpeg",
   },
   {
-    nome: "João Vitor",
-    numero: "42",
+    nome: "André Guilherme",
+    numero: "29",
     cargo: "Diretor de Gestão e Gente",
-    foto_url: "/assets/candidates/joao_vitor.jpeg",
+    foto_url: "/assets/candidates/andre_guilherme.jpeg",
   },
 ];
 
@@ -147,6 +147,21 @@ export function resetLocalCandidatesToOfficial(electionId?: string): LocalDbData
 }
 
 export function hasNeonDatabaseUrl(): boolean {
-  const url = process.env.DATABASE_URL;
-  return Boolean(url && url.includes("neon.tech") && !url.includes("dummy") && !url.includes("ep-sample"));
+  const rawUrl = process.env.DATABASE_URL;
+  if (!rawUrl) return false;
+  let url = rawUrl.trim();
+  while (
+    (url.startsWith('"') && url.endsWith('"')) ||
+    (url.startsWith("'") && url.endsWith("'")) ||
+    (url.startsWith("`") && url.endsWith("`"))
+  ) {
+    url = url.slice(1, -1).trim();
+  }
+  return Boolean(
+    url &&
+      url.startsWith("postgres") &&
+      (url.includes("neon.tech") || url.includes("aws.neon.tech") || url.includes("sslmode")) &&
+      !url.includes("dummy") &&
+      !url.includes("localhost")
+  );
 }
