@@ -208,7 +208,7 @@ flowchart TD
 
 #### 🛡️ TRILHA C: Painel Administrativo, Auth & Apuração (Agente 4)
 
-#### `[ ]` TASK-401: Autenticação Segura do Admin & Sessão
+#### `[x]` TASK-401: Autenticação Segura do Admin & Sessão
 - **Objetivo:** Criar sistema de login administrativo protegido por senha mestra com hash seguro e sessão HttpOnly (Iron Session / JWT).
 - **Dependências:** `TASK-101`.
 - **Arquivos:** `src/lib/auth/session.ts`, `src/lib/auth/password.ts`, `src/app/api/admin/login/route.ts`, `src/app/api/admin/logout/route.ts`, `src/middleware.ts`, `scripts/generate-admin-hash.mjs`.
