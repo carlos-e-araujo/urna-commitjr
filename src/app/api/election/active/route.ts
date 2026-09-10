@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getActiveElection } from "@/lib/services/candidateService";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET() {
   try {
@@ -17,7 +18,7 @@ export async function GET() {
         {
           status: 200,
           headers: {
-            "Cache-Control": "no-store, max-age=0",
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
           },
         }
       );
@@ -36,7 +37,7 @@ export async function GET() {
       {
         status: 200,
         headers: {
-          "Cache-Control": "public, s-maxage=5, stale-while-revalidate=10",
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
         },
       }
     );

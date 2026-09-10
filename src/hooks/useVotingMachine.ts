@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useMemo } from "react";
 import { soundEffects } from "@/lib/audio/soundEffects";
-import seedCandidates from "@/data/seed-candidatos.json";
 
 export interface CandidateVoteData {
   id?: string;
@@ -28,22 +27,9 @@ export interface UseVotingMachineOptions {
   onFinish?: (votes: VoteRecord[]) => Promise<boolean | void> | boolean | void;
 }
 
-const DEFAULT_ROLES = [
-  "Presidente",
-  "Vice-Presidente",
-  "Diretor de Gestão e Gente",
-];
-
-const DEFAULT_CANDIDATES: CandidateVoteData[] = seedCandidates.map((c) => ({
-  name: c.nome,
-  number: c.numero,
-  role: c.cargo,
-  photoUrl: c.foto_url,
-}));
-
 export function useVotingMachine(options: UseVotingMachineOptions = {}) {
-  const roles = options.roles && options.roles.length > 0 ? options.roles : DEFAULT_ROLES;
-  const candidates = options.candidates || DEFAULT_CANDIDATES;
+  const roles = options.roles || [];
+  const candidates = options.candidates || [];
   const digitsRequired = options.digitsPerRole || 2;
 
   const [currentRoleIndex, setCurrentRoleIndex] = useState(0);

@@ -34,7 +34,10 @@ export default function ApuracaoAdminPage() {
   const fetchTally = useCallback(async () => {
     try {
       setError(null);
-      const res = await fetch("/api/admin/tally");
+      const res = await fetch(`/api/admin/tally?_t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
       const resJson = await res.json();
 
       if (!res.ok || !resJson.success) {

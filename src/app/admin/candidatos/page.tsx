@@ -18,7 +18,10 @@ export default function CandidatesAdminPage() {
   const fetchCandidates = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/admin/candidates");
+      const res = await fetch(`/api/admin/candidates?_t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
       const data = await res.json();
       if (res.ok && data.success) {
         setCandidates(data.candidates || []);

@@ -5,6 +5,7 @@ import { hasNeonDatabaseUrl, readLocalDb, writeLocalDb } from "@/lib/db/localSto
 import { getPrimaryElection } from "@/lib/services/candidateService";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +14,14 @@ export async function GET(request: NextRequest) {
 
     const currentElection = await getPrimaryElection(electionIdParam);
     if (!currentElection) {
-      return NextResponse.json({ success: true, candidates: [] });
+      return NextResponse.json(
+        { success: true, candidates: [] },
+        {
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+          },
+        }
+      );
     }
 
     const targetId = currentElection.id;
@@ -21,7 +29,14 @@ export async function GET(request: NextRequest) {
     if (!hasNeonDatabaseUrl()) {
       const local = readLocalDb();
       const list = local.candidates.filter((c) => c.electionId === targetId);
-      return NextResponse.json({ success: true, candidates: list });
+      return NextResponse.json(
+        { success: true, candidates: list },
+        {
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+          },
+        }
+      );
     }
 
     const candidateList = await db
@@ -30,10 +45,17 @@ export async function GET(request: NextRequest) {
       .where(eq(candidates.electionId, targetId))
       .orderBy(asc(candidates.role), asc(candidates.number));
 
-    return NextResponse.json({
-      success: true,
-      candidates: candidateList,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        candidates: candidateList,
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+        },
+      }
+    );
   } catch (error) {
     console.error("Erro ao listar candidatos:", error);
     return NextResponse.json(

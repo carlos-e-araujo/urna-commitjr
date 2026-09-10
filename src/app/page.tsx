@@ -21,7 +21,6 @@ import {
   Lock,
   RefreshCw,
 } from "lucide-react";
-import seedCandidates from "@/data/seed-candidatos.json";
 
 interface ElectionInfo {
   id: string;
@@ -102,21 +101,18 @@ export default function HomePage() {
       }
 
       // 4. Busca dados detalhados da eleição e lista de candidatos
-      const activeRes = await fetch("/api/election/active", { cache: "no-store" });
+      const activeRes = await fetch(`/api/election/active?_t=${Date.now()}`, { cache: "no-store" });
       const activeData = await activeRes.json();
 
-      const candRes = await fetch(`/api/candidates?electionId=${electionId}`, {
+      const candRes = await fetch(`/api/candidates?electionId=${electionId}&_t=${Date.now()}`, {
         cache: "no-store",
       });
       const candData = await candRes.json();
 
-      const loadedRoles =
-        activeData.roles && activeData.roles.length > 0
-          ? activeData.roles
-          : ["Presidente", "Vice-Presidente", "Diretor de Gestão e Gente"];
+      const loadedRoles: string[] = Array.isArray(activeData.roles) ? activeData.roles : [];
 
       const loadedCandidates: CandidateVoteData[] =
-        candData.candidates && candData.candidates.length > 0
+        candData.candidates && Array.isArray(candData.candidates)
           ? candData.candidates.map((c: any) => ({
               id: c.id,
               name: c.name,
@@ -124,12 +120,21 @@ export default function HomePage() {
               role: c.role,
               photoUrl: c.photoUrl,
             }))
-          : seedCandidates.map((c) => ({
-              name: c.nome,
-              number: c.numero,
-              role: c.cargo,
-              photoUrl: c.foto_url,
-            }));
+          : [];
+
+      if (loadedCandidates.length === 0 || loadedRoles.length === 0) {
+        setCanVote(false);
+        setBlockReason("Nenhum candidato cadastrado para esta eleição.");
+        setElection({
+          id: electionId,
+          title: activeData.title || checkData.title || "Eleição Commit Jr.",
+          status: "OPEN",
+          roles: [],
+        });
+        setCandidatesList([]);
+        setLoading(false);
+        return;
+      }
 
       setElection({
         id: electionId,

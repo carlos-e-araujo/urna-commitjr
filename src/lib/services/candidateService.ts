@@ -116,7 +116,7 @@ export async function getActiveElection(): Promise<ActiveElectionData | null> {
       status: active.status,
       openedAt: active.openedAt ? new Date(active.openedAt) : null,
       createdAt: new Date(active.createdAt),
-      roles: sortedRoles.length > 0 ? sortedRoles : ["Presidente", "Vice-Presidente", "Diretor de Gestão e Gente"],
+      roles: sortedRoles,
     };
   }
 
@@ -147,7 +147,7 @@ export async function getActiveElection(): Promise<ActiveElectionData | null> {
     status: election.status,
     openedAt: election.openedAt,
     createdAt: election.createdAt,
-    roles: sortedRoles.length > 0 ? sortedRoles : ["Presidente", "Vice-Presidente", "Diretor de Gestão e Gente"],
+    roles: sortedRoles,
   };
 }
 

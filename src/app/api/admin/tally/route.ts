@@ -6,6 +6,7 @@ import { hasNeonDatabaseUrl, readLocalDb } from "@/lib/db/localStore";
 import { sortRoles, getPrimaryElection } from "@/lib/services/candidateService";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
@@ -139,15 +140,29 @@ export async function GET(request: NextRequest) {
       generatedAt: new Date().toISOString(),
     };
 
-    return NextResponse.json({
-      success: true,
-      data: payload,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: payload,
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      }
+    );
   } catch (error: any) {
     console.error("Erro ao apurar votos:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Erro ao processar apuração." },
-      { status: 500 }
+      {
+        status: 500,
+        headers: {
+          "Cache-Control": "no-store, max-age=0",
+        },
+      }
     );
   }
 }

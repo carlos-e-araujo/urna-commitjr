@@ -24,7 +24,10 @@ export function useAdmin() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch("/api/admin/election");
+      const res = await fetch(`/api/admin/election?_t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
       const data = await res.json();
 
       if (!res.ok || !data.success) {

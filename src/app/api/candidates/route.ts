@@ -5,6 +5,7 @@ import {
 } from "@/lib/services/candidateService";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +21,12 @@ export async function GET(request: NextRequest) {
             candidates: [],
             message: "Nenhuma eleição ativa encontrada.",
           },
-          { status: 200 }
+          {
+            status: 200,
+            headers: {
+              "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+            },
+          }
         );
       }
       electionId = activeElection.id;
@@ -37,7 +43,7 @@ export async function GET(request: NextRequest) {
       {
         status: 200,
         headers: {
-          "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
         },
       }
     );

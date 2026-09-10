@@ -91,6 +91,24 @@ export function getInitialData(): LocalDbData {
   };
 }
 
+export function cleanConnectionString(val?: string | null): string | null {
+  if (!val) return null;
+  let cleaned = String(val).trim();
+  let changed = true;
+  while (changed && cleaned.length >= 2) {
+    changed = false;
+    if (
+      (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+      (cleaned.startsWith("'") && cleaned.endsWith("'")) ||
+      (cleaned.startsWith("`") && cleaned.endsWith("`"))
+    ) {
+      cleaned = cleaned.slice(1, -1).trim();
+      changed = true;
+    }
+  }
+  return cleaned.length > 0 ? cleaned : null;
+}
+
 export function readLocalDb(): LocalDbData {
   try {
     if (!fs.existsSync(DATA_DIR)) {
@@ -103,12 +121,17 @@ export function readLocalDb(): LocalDbData {
     }
     const content = fs.readFileSync(DB_FILE, "utf-8");
     const parsed = JSON.parse(content);
-    if (!parsed.elections || !parsed.candidates || parsed.candidates.length === 0) {
+    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.elections)) {
       const initial = getInitialData();
       fs.writeFileSync(DB_FILE, JSON.stringify(initial, null, 2), "utf-8");
       return initial;
     }
-    return parsed;
+    return {
+      elections: Array.isArray(parsed.elections) ? parsed.elections : [],
+      candidates: Array.isArray(parsed.candidates) ? parsed.candidates : [],
+      votes: Array.isArray(parsed.votes) ? parsed.votes : [],
+      voterRecords: Array.isArray(parsed.voterRecords) ? parsed.voterRecords : [],
+    };
   } catch {
     return getInitialData();
   }
@@ -147,21 +170,11 @@ export function resetLocalCandidatesToOfficial(electionId?: string): LocalDbData
 }
 
 export function hasNeonDatabaseUrl(): boolean {
-  const rawUrl = process.env.DATABASE_URL;
-  if (!rawUrl) return false;
-  let url = rawUrl.trim();
-  while (
-    (url.startsWith('"') && url.endsWith('"')) ||
-    (url.startsWith("'") && url.endsWith("'")) ||
-    (url.startsWith("`") && url.endsWith("`"))
-  ) {
-    url = url.slice(1, -1).trim();
-  }
-  return Boolean(
-    url &&
-      url.startsWith("postgres") &&
-      (url.includes("neon.tech") || url.includes("aws.neon.tech") || url.includes("sslmode")) &&
-      !url.includes("dummy") &&
-      !url.includes("localhost")
+  const cleaned = cleanConnectionString(process.env.DATABASE_URL);
+  if (!cleaned) return false;
+  return (
+    (cleaned.startsWith("postgres://") || cleaned.startsWith("postgresql://")) &&
+    !cleaned.includes("dummy") &&
+    !cleaned.includes("localhost:5432/dummy")
   );
 }
