@@ -42,14 +42,14 @@ export const KeyButton: React.FC<KeyButtonProps> = ({
   const getVariantStyles = () => {
     switch (variant) {
       case "branco":
-        return "bg-slate-100 text-zinc-900 border-t border-zinc-200 hover:bg-white active:bg-slate-200 text-xs sm:text-sm font-bold uppercase";
+        return "bg-slate-100 text-zinc-900 border-t border-zinc-200 hover:bg-white active:bg-slate-200 text-[9px] sm:text-xs md:text-sm font-bold uppercase";
       case "corrige":
-        return "bg-orange-600 text-zinc-950 hover:bg-orange-500 active:bg-orange-700 text-xs sm:text-sm font-bold uppercase";
+        return "bg-orange-600 text-zinc-950 hover:bg-orange-500 active:bg-orange-700 text-[9px] sm:text-xs md:text-sm font-bold uppercase";
       case "confirma":
-        return "bg-emerald-600 text-zinc-950 hover:bg-emerald-500 active:bg-emerald-700 text-xs sm:text-sm font-extrabold uppercase";
+        return "bg-emerald-600 text-zinc-950 hover:bg-emerald-500 active:bg-emerald-700 text-[10px] sm:text-xs md:text-sm font-black uppercase";
       case "digit":
       default:
-        return "bg-zinc-900 text-white hover:bg-zinc-800 active:bg-black text-xl sm:text-2xl md:text-3xl font-bold font-mono";
+        return "bg-zinc-900 text-white hover:bg-zinc-800 active:bg-black text-sm sm:text-xl md:text-3xl font-black font-mono";
     }
   };
 
