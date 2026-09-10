@@ -228,7 +228,7 @@ flowchart TD
   - Feedback visual do status atual da eleição (`DRAFT`, `OPEN`, `CLOSED`).
 - **Commit:** `feat(admin): implementa controle de ciclo da eleicao no painel admin`
 
-#### `[ ]` TASK-403: Gestão Completa de Candidatos (CRUD) no Painel Admin
+#### `[x]` TASK-403: Gestão Completa de Candidatos (CRUD) no Painel Admin
 - **Objetivo:** Permitir cadastro, edição, listagem e remoção de candidatos por cargo, incluindo upload/definição de foto.
 - **Dependências:** `TASK-401`, `TASK-103`.
 - **Arquivos:** `src/app/admin/candidatos/page.tsx`, `src/components/admin/CandidateFormModal.tsx`, `src/components/admin/CandidateTable.tsx`, `src/app/api/admin/candidates/[id]/route.ts`.
