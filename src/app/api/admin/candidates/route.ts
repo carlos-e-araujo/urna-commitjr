@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, candidates, elections } from "@/lib/db";
 import { eq, desc, asc, and } from "drizzle-orm";
 import { hasNeonDatabaseUrl, readLocalDb, writeLocalDb } from "@/lib/db/localStore";
+import { ensureOfficialCandidates } from "@/lib/services/candidateService";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,11 @@ export async function GET(request: NextRequest) {
     if (!hasNeonDatabaseUrl()) {
       const local = readLocalDb();
       const targetId = electionId || local.elections[0]?.id;
-      const list = local.candidates.filter((c) => (targetId ? c.electionId === targetId : true));
+      if (targetId) {
+        await ensureOfficialCandidates(targetId);
+      }
+      const updatedLocal = readLocalDb();
+      const list = updatedLocal.candidates.filter((c) => (targetId ? c.electionId === targetId : true));
       return NextResponse.json({ success: true, candidates: list });
     }
 
@@ -31,6 +36,8 @@ export async function GET(request: NextRequest) {
     if (!electionId) {
       return NextResponse.json({ success: true, candidates: [] });
     }
+
+    await ensureOfficialCandidates(electionId);
 
     const candidateList = await db
       .select()

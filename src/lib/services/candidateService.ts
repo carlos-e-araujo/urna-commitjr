@@ -2,7 +2,12 @@ import { eq, asc, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { elections, candidates } from "@/lib/db/schema";
 import { CandidateDisplay } from "@/types/database";
-import { hasNeonDatabaseUrl, readLocalDb } from "@/lib/db/localStore";
+import {
+  hasNeonDatabaseUrl,
+  readLocalDb,
+  writeLocalDb,
+  OFFICIAL_SEED_CANDIDATES,
+} from "@/lib/db/localStore";
 
 // Ordem preferencial dos cargos padrão
 const DEFAULT_ROLE_ORDER = [
@@ -24,10 +29,77 @@ export interface ActiveElectionData {
 }
 
 /**
+ * Garante que os 3 candidatos oficiais estejam sempre cadastrados na eleição
+ */
+export async function ensureOfficialCandidates(electionId: string): Promise<void> {
+  try {
+    if (!hasNeonDatabaseUrl()) {
+      const local = readLocalDb();
+      let changed = false;
+      const now = new Date().toISOString();
+
+      for (const item of OFFICIAL_SEED_CANDIDATES) {
+        const exists = local.candidates.some(
+          (c) =>
+            c.electionId === electionId &&
+            (c.number === item.numero || c.name.toLowerCase() === item.nome.toLowerCase()) &&
+            c.role.toLowerCase() === item.cargo.toLowerCase()
+        );
+
+        if (!exists) {
+          local.candidates.push({
+            id: `candidate-seed-${item.numero}`,
+            electionId,
+            name: item.nome,
+            number: item.numero,
+            role: item.cargo,
+            photoUrl: item.foto_url,
+            createdAt: now,
+            updatedAt: now,
+          });
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        writeLocalDb(local);
+      }
+      return;
+    }
+
+    // Modo Neon PostgreSQL
+    const existingCandidates = await db
+      .select()
+      .from(candidates)
+      .where(eq(candidates.electionId, electionId));
+
+    for (const item of OFFICIAL_SEED_CANDIDATES) {
+      const exists = existingCandidates.some(
+        (c) =>
+          (c.number === item.numero || c.name.toLowerCase() === item.nome.toLowerCase()) &&
+          c.role.toLowerCase() === item.cargo.toLowerCase()
+      );
+
+      if (!exists) {
+        await db.insert(candidates).values({
+          electionId,
+          name: item.nome,
+          number: item.numero,
+          role: item.cargo,
+          photoUrl: item.foto_url,
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Erro ao garantir candidatos oficiais:", error);
+  }
+}
+
+/**
  * Ordena lista de cargos respeitando a ordem institucional padrão
  */
 export function sortRoles(roles: string[]): string[] {
-  const uniqueRoles = Array.from(new Set(roles));
+  const uniqueRoles = Array.from(new Set(roles.filter(Boolean)));
   return uniqueRoles.sort((a, b) => {
     const indexA = DEFAULT_ROLE_ORDER.indexOf(a);
     const indexB = DEFAULT_ROLE_ORDER.indexOf(b);
@@ -48,7 +120,11 @@ export async function getActiveElection(): Promise<ActiveElectionData | null> {
     const active = local.elections.find((e) => e.status === "OPEN");
     if (!active) return null;
 
-    const electionCandidates = local.candidates.filter((c) => c.electionId === active.id);
+    await ensureOfficialCandidates(active.id);
+
+    // Re-lê após garantir candidatos
+    const updatedLocal = readLocalDb();
+    const electionCandidates = updatedLocal.candidates.filter((c) => c.electionId === active.id);
     const rawRoles = electionCandidates.map((c) => c.role);
     const sortedRoles = sortRoles(rawRoles);
 
@@ -58,7 +134,7 @@ export async function getActiveElection(): Promise<ActiveElectionData | null> {
       status: active.status,
       openedAt: active.openedAt ? new Date(active.openedAt) : null,
       createdAt: new Date(active.createdAt),
-      roles: sortedRoles,
+      roles: sortedRoles.length > 0 ? sortedRoles : ["Presidente", "Vice-Presidente", "Diretor de Gestão e Gente"],
     };
   }
 
@@ -74,6 +150,7 @@ export async function getActiveElection(): Promise<ActiveElectionData | null> {
   }
 
   const election = activeElections[0];
+  await ensureOfficialCandidates(election.id);
 
   const electionCandidates = await db
     .select({ role: candidates.role })
@@ -89,7 +166,7 @@ export async function getActiveElection(): Promise<ActiveElectionData | null> {
     status: election.status,
     openedAt: election.openedAt,
     createdAt: election.createdAt,
-    roles: sortedRoles,
+    roles: sortedRoles.length > 0 ? sortedRoles : ["Presidente", "Vice-Presidente", "Diretor de Gestão e Gente"],
   };
 }
 
@@ -99,6 +176,7 @@ export async function getActiveElection(): Promise<ActiveElectionData | null> {
 export async function getCandidatesByElectionId(
   electionId: string
 ): Promise<CandidateDisplay[]> {
+  await ensureOfficialCandidates(electionId);
   let candidateList: CandidateDisplay[] = [];
 
   if (!hasNeonDatabaseUrl()) {

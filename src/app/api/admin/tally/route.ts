@@ -3,7 +3,7 @@ import { db, elections, candidates, votes, voterRecords } from "@/lib/db";
 import { eq, desc, count } from "drizzle-orm";
 import { ElectionResults } from "@/types/database";
 import { hasNeonDatabaseUrl, readLocalDb } from "@/lib/db/localStore";
-import { sortRoles } from "@/lib/services/candidateService";
+import { sortRoles, ensureOfficialCandidates } from "@/lib/services/candidateService";
 
 export const dynamic = "force-dynamic";
 
@@ -25,9 +25,12 @@ export async function GET(request: NextRequest) {
       }
 
       const targetId = currentElection.id;
-      allCandidates = local.candidates.filter((c) => c.electionId === targetId);
-      allVotes = local.votes.filter((v) => v.electionId === targetId);
-      totalVoters = local.voterRecords.filter((r) => r.electionId === targetId).length;
+      await ensureOfficialCandidates(targetId);
+
+      const updatedLocal = readLocalDb();
+      allCandidates = updatedLocal.candidates.filter((c) => c.electionId === targetId);
+      allVotes = updatedLocal.votes.filter((v) => v.electionId === targetId);
+      totalVoters = updatedLocal.voterRecords.filter((r) => r.electionId === targetId).length;
     } else {
       if (electionId) {
         const elecList = await db.select().from(elections).where(eq(elections.id, electionId)).limit(1);
@@ -42,6 +45,8 @@ export async function GET(request: NextRequest) {
       }
 
       const targetId = currentElection.id;
+      await ensureOfficialCandidates(targetId);
+
       const [voterCountRes] = await db.select({ count: count() }).from(voterRecords).where(eq(voterRecords.electionId, targetId));
       totalVoters = Number(voterCountRes?.count || 0);
 
@@ -85,7 +90,6 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      // Ordena por votos decrescente e depois por número
       candidateResults.sort((a, b) => {
         if (b.votes !== a.votes) return b.votes - a.votes;
         return a.number.localeCompare(b.number);
