@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, candidates, elections } from "@/lib/db";
 import { eq, desc, asc, and } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

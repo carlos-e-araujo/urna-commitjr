@@ -238,7 +238,7 @@ flowchart TD
   - Edição e exclusão seguras com atualização imediata no banco.
 - **Commit:** `feat(admin): implementa crud completo de candidatos com modal e tabela`
 
-#### `[ ]` TASK-404: Apuração em Tempo Real & Relatório Final com Gráficos
+#### `[x]` TASK-404: Apuração em Tempo Real & Relatório Final com Gráficos
 - **Objetivo:** Exibir totalizadores de votos, votos por candidato, brancos e nulos em tempo real para o admin, e relatório consolidado pós-fechamento.
 - **Dependências:** `TASK-402`, `TASK-303`.
 - **Arquivos:** `src/app/admin/apuracao/page.tsx`, `src/components/admin/TallyChart.tsx`, `src/app/api/admin/tally/route.ts`.

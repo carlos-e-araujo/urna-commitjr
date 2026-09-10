@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, elections, candidates, votes, voterRecords } from "@/lib/db";
 import { eq, desc, count } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     // Busca a eleição mais recente
