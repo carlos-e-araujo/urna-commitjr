@@ -13,17 +13,18 @@ interface CandidateFormModalProps {
 }
 
 const COMMON_ROLES = [
-  "Diretor Presidente",
+  "Presidente",
+  "Vice-Presidente",
+  "Diretor de Gestão e Gente",
+  "Diretor Financeiro",
   "Diretor de Projetos",
-  "Diretor Administrativo-Financeiro",
   "Diretor de Marketing",
-  "Diretor de Recursos Humanos",
   "Conselheiro Fiscal",
 ];
 
 const PRESET_PHOTOS = [
   { label: "André Guilherme", url: "/assets/candidates/andre_guilherme.jpeg" },
-  { label: "Arthur Cordeiro", url: "/assets/candidates/arhur_cordeiro.jpeg" },
+  { label: "Arthur Cordeiro", url: "/assets/candidates/arthur_cordeiro.jpeg" },
   { label: "João Vitor", url: "/assets/candidates/joao_vitor.jpeg" },
   { label: "Brasão Commit", url: "/assets/images/brasao.png" },
 ];

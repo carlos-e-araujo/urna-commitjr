@@ -62,7 +62,7 @@ export default function CandidatesAdminPage() {
   };
 
   const handleRestoreOfficial = async () => {
-    if (!window.confirm("Deseja restaurar os 3 candidatos oficiais (André Guilherme, Arthur Cordeiro e João Vitor)?")) {
+    if (!window.confirm("Deseja restaurar os 3 candidatos oficiais (André Guilherme, Arthur Cordeiro e João Vitor)? Todos os candidatos atuais desta eleição serão substituídos pelos 3 oficiais.")) {
       return;
     }
     try {
@@ -77,6 +77,29 @@ export default function CandidatesAdminPage() {
       }
     } catch (err: any) {
       setFeedback({ type: "error", message: err.message || "Erro de conexão ao restaurar candidatos." });
+    } finally {
+      setSeeding(false);
+    }
+  };
+
+  const handleDeduplicate = async () => {
+    try {
+      setSeeding(true);
+      const res = await fetch("/api/admin/candidates/deduplicate", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setFeedback({ type: "error", message: data.error || "Erro ao deduplicar candidatos." });
+      } else {
+        setFeedback({
+          type: "success",
+          message: data.removedCount > 0
+            ? `Limpeza concluída! ${data.removedCount} candidato(s) duplicado(s) removido(s).`
+            : "Nenhum candidato duplicado encontrado na eleição.",
+        });
+        await fetchCandidates();
+      }
+    } catch (err: any) {
+      setFeedback({ type: "error", message: err.message || "Erro ao remover duplicatas." });
     } finally {
       setSeeding(false);
     }
@@ -109,6 +132,16 @@ export default function CandidatesAdminPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={handleDeduplicate}
+              disabled={loading || seeding}
+              className="flex items-center gap-2 px-3.5 py-2 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-blue-300 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
+              title="Remove registros duplicados de candidatos"
+            >
+              <RotateCcw className={`w-3.5 h-3.5 ${seeding ? "animate-spin" : ""}`} />
+              <span>Limpar Duplicados</span>
+            </button>
+
             <button
               onClick={handleRestoreOfficial}
               disabled={loading || seeding}

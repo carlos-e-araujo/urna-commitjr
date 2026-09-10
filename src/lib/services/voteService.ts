@@ -68,7 +68,7 @@ export async function submitVotes(
     const candidateMap = new Map(
       local.candidates
         .filter((c) => c.electionId === electionId)
-        .map((c) => [`${c.role.toLowerCase()}:${c.number}`, c])
+        .map((c) => [`${c.role.trim().toLowerCase()}:${c.number.trim()}`, c])
     );
     const candidateMapById = new Map(
       local.candidates.filter((c) => c.electionId === electionId).map((c) => [c.id, c])
@@ -87,7 +87,7 @@ export async function submitVotes(
         candidateId = v.candidateId;
         isNull = false;
       } else if (v.candidateNumber) {
-        const key = `${v.role.toLowerCase()}:${v.candidateNumber}`;
+        const key = `${v.role.trim().toLowerCase()}:${v.candidateNumber.trim()}`;
         const candidate = candidateMap.get(key);
         if (candidate) {
           candidateId = candidate.id;
@@ -140,7 +140,7 @@ export async function submitVotes(
 
   const candidateMapById = new Map(electionCandidates.map((c) => [c.id, c]));
   const candidateMapByNumberAndRole = new Map(
-    electionCandidates.map((c) => [`${c.role.toLowerCase()}:${c.number}`, c])
+    electionCandidates.map((c) => [`${c.role.trim().toLowerCase()}:${c.number.trim()}`, c])
   );
 
   const votesToInsert = rawVotes.map((v) => {
@@ -169,7 +169,7 @@ export async function submitVotes(
         isNull = true;
       }
     } else if (v.candidateNumber) {
-      const key = `${v.role.toLowerCase()}:${v.candidateNumber}`;
+      const key = `${v.role.trim().toLowerCase()}:${v.candidateNumber.trim()}`;
       const candidate = candidateMapByNumberAndRole.get(key);
       if (candidate) {
         candidateId = candidate.id;

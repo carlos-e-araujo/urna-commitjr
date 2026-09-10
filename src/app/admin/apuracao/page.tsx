@@ -86,6 +86,7 @@ export default function ApuracaoAdminPage() {
 
   // Contagem total de votos somando todos os cargos
   const totalVotesAcrossAllRoles = roles.reduce((acc, r) => acc + r.totalVotes, 0);
+  const totalCandidatesCount = roles.reduce((acc, r) => acc + r.candidates.length, 0);
 
   return (
     <AdminLayout>
@@ -113,7 +114,7 @@ export default function ApuracaoAdminPage() {
               <span>Apuração & Resultados</span>
             </h1>
             <p className="text-sm text-slate-400 mt-1">
-              Contagem em tempo real e consolidação de votos por cargo
+              Contagem em tempo real de todos os candidatos e consolidação de votos por cargo
             </p>
           </div>
 
@@ -162,7 +163,7 @@ export default function ApuracaoAdminPage() {
 
         {/* Status Summary Banner */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl print:bg-slate-50 print:border-slate-300 print:shadow-none">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Status */}
             <div>
               <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block print:text-slate-600">
@@ -187,6 +188,16 @@ export default function ApuracaoAdminPage() {
               </span>
               <span className="text-2xl font-bold text-emerald-400 print:text-emerald-800 block mt-0.5">
                 {data?.totalVoters ?? 0}
+              </span>
+            </div>
+
+            {/* Total de Candidatos */}
+            <div>
+              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block print:text-slate-600">
+                Candidatos Apurados
+              </span>
+              <span className="text-2xl font-bold text-purple-400 print:text-purple-800 block mt-0.5">
+                {totalCandidatesCount}
               </span>
             </div>
 

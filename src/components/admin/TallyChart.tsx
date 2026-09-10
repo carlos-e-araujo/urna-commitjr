@@ -75,7 +75,7 @@ export function TallyChart({ roleData, isElectionClosed }: TallyChartProps) {
 
           return (
             <div
-              key={cand.candidateId || cand.number}
+              key={cand.candidateId || `${cand.number}-${cand.name}-${idx}`}
               className={`p-3.5 rounded-xl border transition-all ${
                 isWinner
                   ? "bg-slate-950/70 border-emerald-500/40 shadow-sm print:bg-slate-50"

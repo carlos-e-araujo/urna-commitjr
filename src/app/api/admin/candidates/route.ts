@@ -1,48 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, candidates, elections } from "@/lib/db";
-import { eq, desc, asc, and } from "drizzle-orm";
+import { db, candidates } from "@/lib/db";
+import { eq, asc, and } from "drizzle-orm";
 import { hasNeonDatabaseUrl, readLocalDb, writeLocalDb } from "@/lib/db/localStore";
-import { ensureOfficialCandidates } from "@/lib/services/candidateService";
+import { getPrimaryElection } from "@/lib/services/candidateService";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    let electionId = searchParams.get("electionId");
+    const electionIdParam = searchParams.get("electionId") || undefined;
 
-    if (!hasNeonDatabaseUrl()) {
-      const local = readLocalDb();
-      const targetId = electionId || local.elections[0]?.id;
-      if (targetId) {
-        await ensureOfficialCandidates(targetId);
-      }
-      const updatedLocal = readLocalDb();
-      const list = updatedLocal.candidates.filter((c) => (targetId ? c.electionId === targetId : true));
-      return NextResponse.json({ success: true, candidates: list });
-    }
-
-    if (!electionId) {
-      const activeElection = await db
-        .select()
-        .from(elections)
-        .orderBy(desc(elections.createdAt))
-        .limit(1);
-      if (activeElection[0]) {
-        electionId = activeElection[0].id;
-      }
-    }
-
-    if (!electionId) {
+    const currentElection = await getPrimaryElection(electionIdParam);
+    if (!currentElection) {
       return NextResponse.json({ success: true, candidates: [] });
     }
 
-    await ensureOfficialCandidates(electionId);
+    const targetId = currentElection.id;
+
+    if (!hasNeonDatabaseUrl()) {
+      const local = readLocalDb();
+      const list = local.candidates.filter((c) => c.electionId === targetId);
+      return NextResponse.json({ success: true, candidates: list });
+    }
 
     const candidateList = await db
       .select()
       .from(candidates)
-      .where(eq(candidates.electionId, electionId))
+      .where(eq(candidates.electionId, targetId))
       .orderBy(asc(candidates.role), asc(candidates.number));
 
     return NextResponse.json({
@@ -80,15 +65,17 @@ export async function POST(request: NextRequest) {
       ? photoUrl.trim()
       : "/assets/candidates/andre_guilherme.jpeg";
 
+    const currentElection = await getPrimaryElection(customElectionId);
+    if (!currentElection) {
+      return NextResponse.json({ success: false, error: "Nenhuma eleição encontrada." }, { status: 404 });
+    }
+    const electionId = currentElection.id;
+
     if (!hasNeonDatabaseUrl()) {
       const local = readLocalDb();
-      const targetId = customElectionId || local.elections[0]?.id;
-      if (!targetId) {
-        return NextResponse.json({ success: false, error: "Nenhuma eleição encontrada." }, { status: 404 });
-      }
 
       const duplicate = local.candidates.find(
-        (c) => c.electionId === targetId && c.role.toLowerCase() === cleanedRole.toLowerCase() && c.number === cleanedNumber
+        (c) => c.electionId === electionId && c.role.toLowerCase() === cleanedRole.toLowerCase() && c.number === cleanedNumber
       );
       if (duplicate) {
         return NextResponse.json(
@@ -100,7 +87,7 @@ export async function POST(request: NextRequest) {
       const now = new Date().toISOString();
       const newCand = {
         id: `candidate-${Date.now()}`,
-        electionId: targetId,
+        electionId,
         name: cleanedName,
         number: cleanedNumber,
         role: cleanedRole,
@@ -113,22 +100,6 @@ export async function POST(request: NextRequest) {
       writeLocalDb(local);
 
       return NextResponse.json({ success: true, message: "Candidato cadastrado com sucesso.", candidate: newCand }, { status: 201 });
-    }
-
-    let electionId = customElectionId;
-    if (!electionId) {
-      const activeElection = await db
-        .select()
-        .from(elections)
-        .orderBy(desc(elections.createdAt))
-        .limit(1);
-      if (activeElection[0]) {
-        electionId = activeElection[0].id;
-      }
-    }
-
-    if (!electionId) {
-      return NextResponse.json({ success: false, error: "Nenhuma eleição ativa encontrada." }, { status: 404 });
     }
 
     const existing = await db

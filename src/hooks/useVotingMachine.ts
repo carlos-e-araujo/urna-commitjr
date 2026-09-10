@@ -61,8 +61,8 @@ export function useVotingMachine(options: UseVotingMachineOptions = {}) {
     return (
       candidates.find(
         (c) =>
-          c.role.toLowerCase() === currentRole.toLowerCase() &&
-          c.number === digits
+          c.role.trim().toLowerCase() === currentRole.trim().toLowerCase() &&
+          c.number.trim() === digits.trim()
       ) || null
     );
   }, [candidates, currentRole, digits, isBlank, digitsRequired]);

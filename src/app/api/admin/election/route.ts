@@ -1,17 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, elections, candidates, votes, voterRecords } from "@/lib/db";
-import { eq, desc, count } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 import { hasNeonDatabaseUrl, readLocalDb, writeLocalDb } from "@/lib/db/localStore";
+import { getPrimaryElection } from "@/lib/services/candidateService";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const electionIdParam = searchParams.get("electionId") || undefined;
+
+    const currentElection = await getPrimaryElection(electionIdParam);
+    if (!currentElection) {
+      return NextResponse.json({ success: false, error: "Nenhuma eleição encontrada." }, { status: 404 });
+    }
+    const targetId = currentElection.id;
+
     if (!hasNeonDatabaseUrl()) {
       const local = readLocalDb();
-      const currentElection = local.elections[0];
-      const targetId = currentElection.id;
-
       return NextResponse.json({
         success: true,
         election: currentElection,
@@ -23,40 +30,20 @@ export async function GET() {
       });
     }
 
-    const electionList = await db
-      .select()
-      .from(elections)
-      .orderBy(desc(elections.createdAt))
-      .limit(1);
-
-    let currentElection = electionList[0];
-
-    if (!currentElection) {
-      const [newElec] = await db
-        .insert(elections)
-        .values({
-          title: "Eleição Commit Jr. 2026",
-          status: "OPEN",
-          openedAt: new Date(),
-        })
-        .returning();
-      currentElection = newElec;
-    }
-
     const [candidatesCountRes] = await db
       .select({ count: count() })
       .from(candidates)
-      .where(eq(candidates.electionId, currentElection.id));
+      .where(eq(candidates.electionId, targetId));
 
     const [votesCountRes] = await db
       .select({ count: count() })
       .from(votes)
-      .where(eq(votes.electionId, currentElection.id));
+      .where(eq(votes.electionId, targetId));
 
     const [votersCountRes] = await db
       .select({ count: count() })
       .from(voterRecords)
-      .where(eq(voterRecords.electionId, currentElection.id));
+      .where(eq(voterRecords.electionId, targetId));
 
     return NextResponse.json({
       success: true,
@@ -81,9 +68,18 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { status, title, electionId } = body;
 
+    const currentElection = await getPrimaryElection(electionId);
+    if (!currentElection) {
+      return NextResponse.json(
+        { success: false, error: "Nenhuma eleição encontrada para atualizar." },
+        { status: 404 }
+      );
+    }
+    const targetId = currentElection.id;
+
     if (!hasNeonDatabaseUrl()) {
       const local = readLocalDb();
-      const target = local.elections.find((e) => (electionId ? e.id === electionId : true)) || local.elections[0];
+      const target = local.elections.find((e) => e.id === targetId) || local.elections[0];
       if (!target) {
         return NextResponse.json({ success: false, error: "Eleição não encontrada." }, { status: 404 });
       }
@@ -113,25 +109,6 @@ export async function PATCH(request: NextRequest) {
         message: `Eleição atualizada para o status: ${target.status}`,
         election: target,
       });
-    }
-
-    let targetId = electionId;
-    if (!targetId) {
-      const electionList = await db
-        .select()
-        .from(elections)
-        .orderBy(desc(elections.createdAt))
-        .limit(1);
-      if (electionList[0]) {
-        targetId = electionList[0].id;
-      }
-    }
-
-    if (!targetId) {
-      return NextResponse.json(
-        { success: false, error: "Nenhuma eleição encontrada para atualizar." },
-        { status: 404 }
-      );
     }
 
     const updatePayload: Partial<typeof elections.$inferInsert> = {};

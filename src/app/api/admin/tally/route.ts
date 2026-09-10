@@ -1,68 +1,76 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, elections, candidates, votes, voterRecords } from "@/lib/db";
-import { eq, desc, count } from "drizzle-orm";
+import { db, candidates, votes, voterRecords } from "@/lib/db";
+import { eq, count, asc } from "drizzle-orm";
 import { ElectionResults } from "@/types/database";
 import { hasNeonDatabaseUrl, readLocalDb } from "@/lib/db/localStore";
-import { sortRoles, ensureOfficialCandidates } from "@/lib/services/candidateService";
+import { sortRoles, getPrimaryElection } from "@/lib/services/candidateService";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    let electionId = searchParams.get("electionId");
+    const electionId = searchParams.get("electionId") || undefined;
 
-    let currentElection: any;
-    let allCandidates: any[] = [];
+    const currentElection = await getPrimaryElection(electionId);
+    if (!currentElection) {
+      return NextResponse.json({ success: false, error: "Nenhuma eleição encontrada." }, { status: 404 });
+    }
+
+    const targetId = currentElection.id;
+    let rawCandidates: any[] = [];
     let allVotes: any[] = [];
     let totalVoters = 0;
 
     if (!hasNeonDatabaseUrl()) {
       const local = readLocalDb();
-      currentElection = local.elections.find((e) => (electionId ? e.id === electionId : true)) || local.elections[0];
-      if (!currentElection) {
-        return NextResponse.json({ success: false, error: "Nenhuma eleição encontrada." }, { status: 404 });
-      }
-
-      const targetId = currentElection.id;
-      await ensureOfficialCandidates(targetId);
-
-      const updatedLocal = readLocalDb();
-      allCandidates = updatedLocal.candidates.filter((c) => c.electionId === targetId);
-      allVotes = updatedLocal.votes.filter((v) => v.electionId === targetId);
-      totalVoters = updatedLocal.voterRecords.filter((r) => r.electionId === targetId).length;
+      rawCandidates = local.candidates.filter((c) => c.electionId === targetId);
+      allVotes = local.votes.filter((v) => v.electionId === targetId);
+      totalVoters = local.voterRecords.filter((r) => r.electionId === targetId).length;
     } else {
-      if (electionId) {
-        const elecList = await db.select().from(elections).where(eq(elections.id, electionId)).limit(1);
-        currentElection = elecList[0];
-      } else {
-        const elecList = await db.select().from(elections).orderBy(desc(elections.createdAt)).limit(1);
-        currentElection = elecList[0];
-      }
-
-      if (!currentElection) {
-        return NextResponse.json({ success: false, error: "Nenhuma eleição encontrada." }, { status: 404 });
-      }
-
-      const targetId = currentElection.id;
-      await ensureOfficialCandidates(targetId);
-
-      const [voterCountRes] = await db.select({ count: count() }).from(voterRecords).where(eq(voterRecords.electionId, targetId));
+      const [voterCountRes] = await db
+        .select({ count: count() })
+        .from(voterRecords)
+        .where(eq(voterRecords.electionId, targetId));
       totalVoters = Number(voterCountRes?.count || 0);
 
-      allCandidates = await db.select().from(candidates).where(eq(candidates.electionId, targetId));
-      allVotes = await db.select().from(votes).where(eq(votes.electionId, targetId));
+      rawCandidates = await db
+        .select()
+        .from(candidates)
+        .where(eq(candidates.electionId, targetId))
+        .orderBy(asc(candidates.role), asc(candidates.number));
+
+      allVotes = await db
+        .select()
+        .from(votes)
+        .where(eq(votes.electionId, targetId));
     }
 
-    const candidateRoles = allCandidates.map((c) => c.role);
-    const voteRoles = allVotes.map((v) => v.role);
-    const rawRoles = Array.from(new Set([...candidateRoles, ...voteRoles]));
+    // Deduplicação em memória por ID caso haja registros corrompidos no banco
+    const seenIds = new Set<string>();
+    const allCandidates: any[] = [];
+    for (const c of rawCandidates) {
+      if (!seenIds.has(c.id)) {
+        seenIds.add(c.id);
+        allCandidates.push({
+          ...c,
+          role: (c.role || "").trim(),
+        });
+      }
+    }
+
+    // Identifica todos os cargos únicos presentes nos candidatos cadastrados e votos
+    const candidateRoles = allCandidates.map((c) => c.role.trim());
+    const voteRoles = allVotes.map((v) => (v.role || "").trim());
+    const rawRoles = Array.from(new Set([...candidateRoles, ...voteRoles].filter(Boolean)));
     const distinctRoles = sortRoles(rawRoles);
 
     const resultsByRole: ElectionResults["resultsByRole"] = {};
 
     for (const role of distinctRoles) {
-      const roleVotes = allVotes.filter((v) => v.role === role);
+      const roleVotes = allVotes.filter(
+        (v) => (v.role || "").trim().toLowerCase() === role.toLowerCase()
+      );
       const totalRoleVotes = roleVotes.length;
 
       const blankVotes = roleVotes.filter((v) => v.isBlank).length;
@@ -72,10 +80,19 @@ export async function GET(request: NextRequest) {
       const blankPercentage = totalRoleVotes > 0 ? Number(((blankVotes / totalRoleVotes) * 100).toFixed(2)) : 0;
       const nullPercentage = totalRoleVotes > 0 ? Number(((nullVotes / totalRoleVotes) * 100).toFixed(2)) : 0;
 
-      const roleCandidates = allCandidates.filter((c) => c.role === role);
+      // Todos os candidatos cadastrados para este cargo
+      const roleCandidates = allCandidates.filter(
+        (c) => c.role.toLowerCase() === role.toLowerCase()
+      );
 
       const candidateResults = roleCandidates.map((c) => {
-        const cVotes = roleVotes.filter((v) => v.candidateId === c.id && !v.isBlank && !v.isNull).length;
+        const cVotes = roleVotes.filter(
+          (v) =>
+            !v.isBlank &&
+            !v.isNull &&
+            (v.candidateId === c.id || (v.candidateNumber && v.candidateNumber === c.number))
+        ).length;
+
         const percentage = totalRoleVotes > 0 ? Number(((cVotes / totalRoleVotes) * 100).toFixed(2)) : 0;
         const validPercentage = validVotes > 0 ? Number(((cVotes / validVotes) * 100).toFixed(2)) : 0;
 
@@ -90,6 +107,7 @@ export async function GET(request: NextRequest) {
         };
       });
 
+      // Ordena por maior número de votos e depois número da urna
       candidateResults.sort((a, b) => {
         if (b.votes !== a.votes) return b.votes - a.votes;
         return a.number.localeCompare(b.number);
@@ -108,7 +126,14 @@ export async function GET(request: NextRequest) {
     }
 
     const payload: ElectionResults & { generatedAt: string } = {
-      election: currentElection,
+      election: {
+        id: currentElection.id,
+        title: currentElection.title,
+        status: currentElection.status,
+        createdAt: new Date(currentElection.createdAt),
+        openedAt: currentElection.openedAt ? new Date(currentElection.openedAt) : null,
+        closedAt: currentElection.closedAt ? new Date(currentElection.closedAt) : null,
+      },
       totalVoters,
       resultsByRole,
       generatedAt: new Date().toISOString(),

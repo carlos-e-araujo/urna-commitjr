@@ -1,43 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, candidates, elections } from "@/lib/db";
-import { eq, desc } from "drizzle-orm";
+import { db, candidates } from "@/lib/db";
+import { eq } from "drizzle-orm";
 import {
   hasNeonDatabaseUrl,
   resetLocalCandidatesToOfficial,
   OFFICIAL_SEED_CANDIDATES,
 } from "@/lib/db/localStore";
+import { getPrimaryElection } from "@/lib/services/candidateService";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     const { electionId: customElectionId } = body;
 
-    if (!hasNeonDatabaseUrl()) {
-      const local = resetLocalCandidatesToOfficial(customElectionId);
-      return NextResponse.json({
-        success: true,
-        message: "Candidatos padrão restaurados com sucesso.",
-        candidates: local.candidates,
-      });
-    }
-
-    let electionId = customElectionId;
-    if (!electionId) {
-      const activeElection = await db
-        .select()
-        .from(elections)
-        .orderBy(desc(elections.createdAt))
-        .limit(1);
-      if (activeElection[0]) {
-        electionId = activeElection[0].id;
-      }
-    }
-
-    if (!electionId) {
+    const currentElection = await getPrimaryElection(customElectionId);
+    if (!currentElection) {
       return NextResponse.json(
-        { success: false, error: "Nenhuma eleição ativa encontrada." },
+        { success: false, error: "Nenhuma eleição encontrada." },
         { status: 404 }
       );
+    }
+    const electionId = currentElection.id;
+
+    if (!hasNeonDatabaseUrl()) {
+      const local = resetLocalCandidatesToOfficial(electionId);
+      return NextResponse.json({
+        success: true,
+        message: "3 Candidatos Oficiais restaurados com sucesso!",
+        candidates: local.candidates.filter((c) => c.electionId === electionId),
+      });
     }
 
     // Remove candidatos antigos desta eleição
@@ -61,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Candidatos padrão restaurados com sucesso.",
+      message: "3 Candidatos Oficiais restaurados com sucesso!",
       candidates: insertedList,
     });
   } catch (error: any) {

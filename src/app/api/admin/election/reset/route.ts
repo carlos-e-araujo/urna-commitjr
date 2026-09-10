@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, elections, votes, voterRecords } from "@/lib/db";
-import { eq, desc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { hasNeonDatabaseUrl, readLocalDb, writeLocalDb } from "@/lib/db/localStore";
+import { getPrimaryElection } from "@/lib/services/candidateService";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,9 +19,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const currentElection = await getPrimaryElection(electionId);
+    if (!currentElection) {
+      return NextResponse.json(
+        { success: false, error: "Nenhuma eleição encontrada para reiniciar." },
+        { status: 404 }
+      );
+    }
+    const targetId = currentElection.id;
+
     if (!hasNeonDatabaseUrl()) {
       const local = readLocalDb();
-      const target = local.elections.find((e) => (electionId ? e.id === electionId : true)) || local.elections[0];
+      const target = local.elections.find((e) => e.id === targetId) || local.elections[0];
       if (!target) {
         return NextResponse.json({ success: false, error: "Eleição não encontrada." }, { status: 404 });
       }
@@ -42,25 +52,6 @@ export async function POST(request: NextRequest) {
         message: "Eleição reiniciada com sucesso. Todos os votos e registros de presença foram zerados.",
         election: target,
       });
-    }
-
-    let targetId = electionId;
-    if (!targetId) {
-      const electionList = await db
-        .select()
-        .from(elections)
-        .orderBy(desc(elections.createdAt))
-        .limit(1);
-      if (electionList[0]) {
-        targetId = electionList[0].id;
-      }
-    }
-
-    if (!targetId) {
-      return NextResponse.json(
-        { success: false, error: "Nenhuma eleição ativa encontrada para reiniciar." },
-        { status: 404 }
-      );
     }
 
     await db.delete(votes).where(eq(votes.electionId, targetId));
