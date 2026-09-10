@@ -121,7 +121,7 @@ flowchart TD
 
 #### 🎨 TRILHA A: Frontend da Urna & Sistema de Áudio (Agente 2)
 
-#### `[ ]` TASK-201: Web Audio Engine de Baixa Latência (`useAudio`)
+#### `[x]` TASK-201: Web Audio Engine de Baixa Latência (`useAudio`)
 - **Objetivo:** Criar hook/módulo de reprodução de áudio que pré-carrega os sons e executa sem delay em navegadores desktop e móveis (iOS/Android).
 - **Dependências:** `TASK-102`.
 - **Arquivos:** `src/hooks/useAudio.ts`, `src/lib/audio/soundEffects.ts`.
