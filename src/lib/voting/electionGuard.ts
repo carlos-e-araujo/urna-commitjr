@@ -28,6 +28,7 @@ export async function assertElectionIsOpen(electionId: string): Promise<{
   id: string;
   title: string;
   status: "OPEN";
+  openedAt?: Date | string | null;
 }> {
   if (!electionId) {
     throw new ElectionGuardError(
@@ -37,7 +38,7 @@ export async function assertElectionIsOpen(electionId: string): Promise<{
     );
   }
 
-  let election: { id: string; title: string; status: string } | undefined;
+  let election: { id: string; title: string; status: string; openedAt?: Date | string | null } | undefined;
 
   if (!hasNeonDatabaseUrl()) {
     const local = readLocalDb();
@@ -48,6 +49,7 @@ export async function assertElectionIsOpen(electionId: string): Promise<{
         id: elections.id,
         title: elections.title,
         status: elections.status,
+        openedAt: elections.openedAt,
       })
       .from(elections)
       .where(eq(elections.id, electionId))
@@ -91,6 +93,7 @@ export async function assertElectionIsOpen(electionId: string): Promise<{
     id: election.id,
     title: election.title,
     status: "OPEN",
+    openedAt: election.openedAt,
   };
 }
 

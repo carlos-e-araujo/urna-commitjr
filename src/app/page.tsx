@@ -12,6 +12,7 @@ import {
   getClientVoterSignature,
   hasLocallyVoted,
   markLocalVoted,
+  clearLocalVoted,
 } from "@/lib/fingerprint/clientFingerprint";
 import {
   AlertCircle,
@@ -27,6 +28,7 @@ interface ElectionInfo {
   title: string;
   status: "OPEN" | "DRAFT" | "CLOSED";
   roles: string[];
+  openedAt?: Date | string | null;
 }
 
 export default function HomePage() {
@@ -83,8 +85,8 @@ export default function HomePage() {
         return;
       }
 
-      // 3. Verifica se eleitor já votou localmente ou via servidor
-      if (checkData.hasVoted || hasLocallyVoted(electionId)) {
+      // 3. Verifica se eleitor já votou
+      if (checkData.hasVoted) {
         setCanVote(false);
         setBlockReason(
           checkData.reason ||
@@ -95,10 +97,14 @@ export default function HomePage() {
           title: checkData.title || "Eleição Commit Jr.",
           status: "OPEN",
           roles: [],
+          openedAt: checkData.openedAt,
         });
         setLoading(false);
         return;
       }
+
+      // Se o servidor confirmou que o eleitor pode votar (eleição zerada ou novo eleitor), limpa marcação de storage
+      clearLocalVoted(electionId);
 
       // 4. Busca dados detalhados da eleição e lista de candidatos
       const activeRes = await fetch(`/api/election/active?_t=${Date.now()}`, { cache: "no-store" });
@@ -130,6 +136,7 @@ export default function HomePage() {
           title: activeData.title || checkData.title || "Eleição Commit Jr.",
           status: "OPEN",
           roles: [],
+          openedAt: activeData.openedAt || checkData.openedAt,
         });
         setCandidatesList([]);
         setLoading(false);
@@ -141,6 +148,7 @@ export default function HomePage() {
         title: activeData.title || checkData.title || "Eleição Commit Jr.",
         status: "OPEN",
         roles: loadedRoles,
+        openedAt: activeData.openedAt || checkData.openedAt,
       });
       setCandidatesList(loadedCandidates);
       setCanVote(true);
@@ -193,8 +201,11 @@ export default function HomePage() {
           return false;
         }
 
-        // Marca no localStorage que já votou nesta eleição
-        markLocalVoted(election.id);
+        // Marca no localStorage que já votou nesta rodada da eleição
+        markLocalVoted(
+          election.id,
+          election.openedAt ? new Date(election.openedAt).toISOString() : null
+        );
         return true;
       } catch (err) {
         console.error("Erro ao submeter votos:", err);

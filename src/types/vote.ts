@@ -20,6 +20,7 @@ export interface VoteSubmissionResult {
   recordedVotesCount: number;
   electionId: string;
   voterSignature: string;
+  openedAt?: Date | string | null;
 }
 
 export interface VoterCheckResult {
@@ -29,4 +30,5 @@ export interface VoterCheckResult {
   reason?: string;
   electionId?: string;
   title?: string;
+  openedAt?: Date | string | null;
 }

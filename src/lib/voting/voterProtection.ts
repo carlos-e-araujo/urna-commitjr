@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { voterRecords } from "@/lib/db/schema";
 import { hasNeonDatabaseUrl, readLocalDb } from "@/lib/db/localStore";
@@ -11,27 +11,57 @@ const VOTER_SECRET =
 
 export const VOTER_COOKIE_PREFIX = "urna_voted_";
 
-export function signVoterToken(electionId: string, voterSignature: string): string {
-  const payload = `${electionId}:${voterSignature}:${Date.now()}`;
+export function signVoterToken(
+  electionId: string,
+  voterSignature: string,
+  openedAt?: Date | string | null
+): string {
+  const sessionTime = openedAt ? new Date(openedAt).getTime() : 0;
+  const payload = `${electionId}:${voterSignature}:${sessionTime}`;
   const hmac = crypto.createHmac("sha256", VOTER_SECRET).update(payload).digest("hex");
   return `${Buffer.from(payload).toString("base64url")}.${hmac}`;
 }
 
-export function verifyVoterToken(token: string, electionId: string): boolean {
+export function extractAndVerifyVoterToken(
+  token: string,
+  electionId: string,
+  currentOpenedAt?: Date | string | null
+): { valid: boolean; voterSignature?: string } {
   try {
     const [payloadB64, signature] = token.split(".");
-    if (!payloadB64 || !signature) return false;
+    if (!payloadB64 || !signature) return { valid: false };
 
     const payload = Buffer.from(payloadB64, "base64url").toString("utf-8");
-    const [tokenElectionId] = payload.split(":");
+    const [tokenElectionId, tokenVoterSignature, tokenSessionTimestamp] = payload.split(":");
 
-    if (tokenElectionId !== electionId) return false;
+    if (tokenElectionId !== electionId) return { valid: false };
 
     const expectedHmac = crypto.createHmac("sha256", VOTER_SECRET).update(payload).digest("hex");
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedHmac));
+    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedHmac))) {
+      return { valid: false };
+    }
+
+    // Se a eleição foi reiniciada após o cookie ser emitido
+    if (currentOpenedAt) {
+      const currentSessionTime = new Date(currentOpenedAt).getTime();
+      const tokenTime = Number(tokenSessionTimestamp || 0);
+      if (tokenTime > 0 && currentSessionTime > tokenTime + 1000) {
+        return { valid: false };
+      }
+    }
+
+    return { valid: true, voterSignature: tokenVoterSignature };
   } catch {
-    return false;
+    return { valid: false };
   }
+}
+
+export function verifyVoterToken(
+  token: string,
+  electionId: string,
+  currentOpenedAt?: Date | string | null
+): boolean {
+  return extractAndVerifyVoterToken(token, electionId, currentOpenedAt).valid;
 }
 
 export function generateAnonymousVoterSignature(
@@ -70,46 +100,52 @@ export function getVoterCookieOptions() {
 export async function checkIfVoterHasVoted(
   electionId: string,
   voterSignature: string,
-  cookieToken?: string | null
+  cookieToken?: string | null,
+  currentOpenedAt?: Date | string | null
 ): Promise<{ hasVoted: boolean; reason?: string }> {
-  // 1. Verificação por Cookie HttpOnly
-  if (cookieToken && verifyVoterToken(cookieToken, electionId)) {
-    return {
-      hasVoted: true,
-      reason: "Este dispositivo/navegador já registrou voto nesta eleição.",
-    };
+  let cookieVoterSignature: string | undefined;
+
+  if (cookieToken) {
+    const verified = extractAndVerifyVoterToken(cookieToken, electionId, currentOpenedAt);
+    if (verified.valid) {
+      cookieVoterSignature = verified.voterSignature;
+    }
   }
 
-  // 2. Verificação no banco de dados (tabela voter_records ou local store)
+  const signaturesToCheck = Array.from(
+    new Set([voterSignature, cookieVoterSignature].filter((s): s is string => Boolean(s)))
+  );
+
+  // 1. Verificação no banco de dados (tabela voter_records ou local store)
   if (!hasNeonDatabaseUrl()) {
     const local = readLocalDb();
     const exists = local.voterRecords.some(
-      (r) => r.electionId === electionId && r.voterSignature === voterSignature
+      (r) => r.electionId === electionId && signaturesToCheck.includes(r.voterSignature)
     );
     if (exists) {
       return {
         hasVoted: true,
-        reason: "Registro de votação já identificado para esta sessão/eleitor.",
+        reason: "Seu voto já foi registrado para esta eleição. Obrigado pela participação!",
       };
     }
     return { hasVoted: false };
   }
 
-  const existingRecord = await db
+  const existingRecords = await db
     .select({ id: voterRecords.id })
     .from(voterRecords)
     .where(
       and(
         eq(voterRecords.electionId, electionId),
-        eq(voterRecords.voterSignature, voterSignature)
+        inArray(voterRecords.voterSignature, signaturesToCheck)
       )
     )
     .limit(1);
 
-  if (existingRecord.length > 0) {
+  if (existingRecords.length > 0) {
     return {
       hasVoted: true,
-      reason: "Registro de votação já identificado para esta sessão/eleitor.",
+      reason: "Seu voto já foi registrado para esta eleição. Obrigado pela participação!",
     };
   }
 

@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
 
-    // Emite o cookie seguro de voto único
-    const signedToken = signVoterToken(result.electionId, result.voterSignature);
+    // Emite o cookie seguro de voto único vinculado à rodada atual
+    const signedToken = signVoterToken(result.electionId, result.voterSignature, result.openedAt);
     response.cookies.set(cookieName, signedToken, getVoterCookieOptions());
 
     return response;

@@ -28,19 +28,33 @@ export function getClientVoterSignature(): string {
   }
 }
 
-export function markLocalVoted(electionId: string): void {
+export function markLocalVoted(electionId: string, sessionTimestamp?: string | null): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(`urna_voted_${electionId}`, "true");
+    localStorage.setItem(`urna_voted_${electionId}`, sessionTimestamp || "true");
   } catch {
     // Silencioso em caso de restrição de storage
   }
 }
 
-export function hasLocallyVoted(electionId: string): boolean {
+export function clearLocalVoted(electionId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(`urna_voted_${electionId}`);
+  } catch {
+    // Silencioso
+  }
+}
+
+export function hasLocallyVoted(electionId: string, currentSessionTimestamp?: string | null): boolean {
   if (typeof window === "undefined") return false;
   try {
-    return localStorage.getItem(`urna_voted_${electionId}`) === "true";
+    const val = localStorage.getItem(`urna_voted_${electionId}`);
+    if (!val) return false;
+    if (currentSessionTimestamp && val !== currentSessionTimestamp && val !== "true") {
+      return false;
+    }
+    return true;
   } catch {
     return false;
   }

@@ -45,13 +45,14 @@ export async function submitVotes(
   }
 
   // 1. Valida se a eleição está aberta (OPEN)
-  await assertElectionIsOpen(electionId);
+  const election = await assertElectionIsOpen(electionId);
 
-  // 2. Valida se o eleitor já votou previamente
+  // 2. Valida se o eleitor já votou previamente na rodada atual
   const { hasVoted, reason } = await checkIfVoterHasVoted(
     electionId,
     voterSignature,
-    cookieToken
+    cookieToken,
+    election.openedAt
   );
 
   if (hasVoted) {
@@ -125,6 +126,7 @@ export async function submitVotes(
       recordedVotesCount: votesToInsert.length,
       electionId,
       voterSignature,
+      openedAt: election.openedAt,
     };
   }
 
@@ -206,6 +208,7 @@ export async function submitVotes(
       recordedVotesCount: votesToInsert.length,
       electionId,
       voterSignature,
+      openedAt: election.openedAt,
     };
   } catch (error: any) {
     if (error?.code === "23505" || error?.message?.includes("unique")) {
