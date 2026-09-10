@@ -151,7 +151,7 @@ flowchart TD
   - Acionamento sonoro instantâneo em cada clique/tecla.
 - **Commit:** `feat(ui): cria teclado numerico virtual e mapeamento de teclado fisico`
 
-#### `[ ]` TASK-204: Máquina de Estados da Votação (`useVotingMachine`) & Tela FIM
+#### `[x]` TASK-204: Máquina de Estados da Votação (`useVotingMachine`) & Tela FIM
 - **Objetivo:** Controlar a sequência de votação entre os cargos cadastrados, digitação dos dígitos, validação, confirmação de cada cargo e tela final de encerramento.
 - **Dependências:** `TASK-202`, `TASK-203`.
 - **Arquivos:** `src/hooks/useVotingMachine.ts`, `src/components/urna/TelaFim.tsx`, `src/app/page.tsx`.
