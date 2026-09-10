@@ -5,6 +5,7 @@ import { UrnaContainer } from "@/components/urna/UrnaContainer";
 import { DisplayLCD } from "@/components/urna/DisplayLCD";
 import { Keypad } from "@/components/urna/Keypad";
 import { TelaFim } from "@/components/urna/TelaFim";
+import { ColinhaEleitor } from "@/components/urna/ColinhaEleitor";
 import { useVotingMachine, CandidateVoteData, VoteRecord } from "@/hooks/useVotingMachine";
 import { usePhysicalKeyboard } from "@/hooks/usePhysicalKeyboard";
 import { useAudio } from "@/hooks/useAudio";
@@ -247,7 +248,17 @@ export default function HomePage() {
   });
 
   return (
-    <UrnaContainer headerTitle={election?.title || "JUSTIÇA ELEITORAL"}>
+    <UrnaContainer
+      headerTitle={election?.title || "JUSTIÇA ELEITORAL"}
+      footer={
+        !loading && canVote && !isFinal && currentRole ? (
+          <ColinhaEleitor
+            currentRole={currentRole}
+            candidates={candidatesList}
+          />
+        ) : undefined
+      }
+    >
       {/* Estado: Carregando */}
       {loading && (
         <div className="lg:col-span-12 h-full flex flex-col items-center justify-center bg-[#f8fafc] border-4 border-zinc-800 rounded-sm p-6 text-center select-none min-h-0">

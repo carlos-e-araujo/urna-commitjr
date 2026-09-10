@@ -6,11 +6,13 @@ import Image from "next/image";
 interface UrnaContainerProps {
   children: ReactNode;
   headerTitle?: string;
+  footer?: ReactNode;
 }
 
 export const UrnaContainer: React.FC<UrnaContainerProps> = ({
   children,
   headerTitle = "JUSTIÇA ELEITORAL",
+  footer,
 }) => {
   return (
     <div className="h-dvh max-h-dvh w-full overflow-hidden bg-zinc-900 flex items-center justify-center p-2 sm:p-4 md:p-6 select-none">
@@ -47,6 +49,13 @@ export const UrnaContainer: React.FC<UrnaContainerProps> = ({
         <main className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 md:gap-6 min-h-0">
           {children}
         </main>
+
+        {/* Bottom Footer / Colinha */}
+        {footer && (
+          <footer className="mt-2 pt-1.5 border-t-2 border-zinc-400 shrink-0">
+            {footer}
+          </footer>
+        )}
       </div>
     </div>
   );
