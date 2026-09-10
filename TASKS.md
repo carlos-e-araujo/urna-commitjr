@@ -273,7 +273,7 @@ flowchart TD
   - Tempo de resposta médio inferior a 500ms por submissão.
 - **Commit:** `test(load): valida resiliencia e integridade sob concorrencia de 30 usuarios`
 
-#### `[ ]` TASK-503: Homologação Cross-Device, Sem Scroll e Limpeza do `tmp/`
+#### `[x]` TASK-503: Homologação Cross-Device, Sem Scroll e Limpeza do `tmp/`
 - **Objetivo:** Validar fidelidade visual em resoluções mobile (Safari iOS, Chrome Android) e desktop, garantindo `100dvh` sem scroll e removendo a pasta temporária `tmp/`.
 - **Dependências:** `TASK-501`, `TASK-502`.
 - **Arquivos:** `src/app/globals.css`, `.gitignore`, remoção de `tmp/`.
