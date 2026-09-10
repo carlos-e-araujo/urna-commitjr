@@ -218,7 +218,7 @@ flowchart TD
   - Script executável para gerar hash de nova senha de administrador.
 - **Commit:** `feat(auth): implementa autenticacao administrativa e protecao de rotas`
 
-#### `[ ]` TASK-402: Dashboard de Controle Eleitoral (Abrir, Fechar, Reiniciar)
+#### `[x]` TASK-402: Dashboard de Controle Eleitoral (Abrir, Fechar, Reiniciar)
 - **Objetivo:** Construir a interface e endpoints para controle total do ciclo de vida da eleição.
 - **Dependências:** `TASK-401`, `TASK-103`.
 - **Arquivos:** `src/app/admin/page.tsx`, `src/components/admin/ElectionControls.tsx`, `src/app/api/admin/election/route.ts`.
