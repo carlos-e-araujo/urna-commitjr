@@ -1,0 +1,17 @@
+- Esse projeto é a urna eletronica para as eleilçies da Commit Jr.
+- A urna deve ter uma aperencia fiel a urna eletronica brasileira.
+- A urna deve ser responsivel e se adaptar ao telefone, tablets e computadores, cobrindo toda a altura e largura disponivel no celular, levando em consideração a "barra" de colocar URL para que não tenha scroll.
+- A aplicação não deve ter scroll vertical, nem horizontal.
+- Um eleitor não pode votar mais de uma vez, logo use cookies e/ou local storage para impedir que votem novamente até uma nova eleição for aberta, ou a urna for resetada.
+- O administrador tem um painel que é possivel acessar no /admin, nesse painel o admin pode:
+  - Abrir a eleição (abre para todos votarem).
+  - Verificar status e ranking em tempo real e quantos eleitores votaram.
+  - Fechar a eleição (impede novos votos e exibe o resultad).
+  - Reiniciar eleição (limpa todos os votos e libera todos os eleitores para votar novamente).
+  - O admin pode cadastrar os candidatos da eleição, na pasta tmp tem o "candidatos.json", nela tem basicamente todos os candidados que farão parte da eleição, junto com suas informações relevantes.
+- O admin precisa de uma senha de acesso, essa senha deve ser gerada no backend com algum script e armazenada em um .env. Garanta que essa tela seja segura e não exponha nem senha nem dados referentes aos votos no frontend para não admins.
+- As ações de admin devem exigir login, garanta que esta autenticado para realizae essas ações.
+- Use react e nextjs para fazer a aplicação e hospedar na verce, vamos usar o neon postgress para armazenar os votos.
+- Na pasta tmp, tem diversos assets para serem usados no projeto, mova-os para os locais adequados e remova a pasta tmp no fim. Faça um cadastro previo dos candidatos armazenados, esses candidatos podem ser removidos, editados, ou ter outros adicionados depois pelo painel de administrador.
+- Os eleitores não precisam logar ou colocar alguma informação pessoal.
+- Essa aplicação precisa suportar cerca de 30 pessoas simultaneas durante um periodo de 5 minutos.
