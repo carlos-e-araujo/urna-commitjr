@@ -87,7 +87,7 @@ flowchart TD
   - Script `npm run build` e `npm run dev` executando sem erros.
 - **Commit:** `chore: inicializa projeto Next.js com TypeScript e Tailwind CSS`
 
-#### `[ ]` TASK-102: Migração e Otimização dos Assets
+#### `[x]` TASK-102: Migração e Otimização dos Assets
 - **Objetivo:** Mover os assets estáticos de `tmp/` para os diretórios definitivos sob `public/assets/` e criar o seed inicial.
 - **Dependências:** `TASK-101`.
 - **Arquivos:**
