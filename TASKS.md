@@ -263,7 +263,7 @@ flowchart TD
   - Mensagem de aviso se a eleição estiver fechada ou não iniciada.
 - **Commit:** `feat(integration): conecta frontend da urna com api de votacao e bloqueio`
 
-#### `[ ]` TASK-502: Teste de Carga e Concorrência (~30 Votantes Simultâneos)
+#### `[x]` TASK-502: Teste de Carga e Concorrência (~30 Votantes Simultâneos)
 - **Objetivo:** Executar e validar simulação de pico de 30 usuários simultâneos votando em janela de 5 minutos, garantindo ausência de locks ou perda de votos.
 - **Dependências:** `TASK-501`.
 - **Arquivos:** `scripts/load-test.mjs`, `tests/concurrency.test.ts`.
