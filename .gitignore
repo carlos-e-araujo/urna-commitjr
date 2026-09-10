@@ -40,3 +40,6 @@ lerna-debug.log*
 
 # Temporary folder
 tmp/
+# Local dev data
+.data/
+

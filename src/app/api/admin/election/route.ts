@@ -1,12 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, elections, candidates, votes, voterRecords } from "@/lib/db";
 import { eq, desc, count } from "drizzle-orm";
+import { hasNeonDatabaseUrl, readLocalDb, writeLocalDb } from "@/lib/db/localStore";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    // Busca a eleição mais recente
+    if (!hasNeonDatabaseUrl()) {
+      const local = readLocalDb();
+      const currentElection = local.elections[0];
+      const targetId = currentElection.id;
+
+      return NextResponse.json({
+        success: true,
+        election: currentElection,
+        stats: {
+          totalCandidates: local.candidates.filter((c) => c.electionId === targetId).length,
+          totalVotes: local.votes.filter((v) => v.electionId === targetId).length,
+          totalVoters: local.voterRecords.filter((r) => r.electionId === targetId).length,
+        },
+      });
+    }
+
     const electionList = await db
       .select()
       .from(elections)
@@ -15,19 +31,18 @@ export async function GET() {
 
     let currentElection = electionList[0];
 
-    // Se nenhuma eleição existir ainda, cria uma padrão
     if (!currentElection) {
       const [newElec] = await db
         .insert(elections)
         .values({
           title: "Eleição Commit Jr. 2026",
-          status: "DRAFT",
+          status: "OPEN",
+          openedAt: new Date(),
         })
         .returning();
       currentElection = newElec;
     }
 
-    // Contadores gerais da eleição
     const [candidatesCountRes] = await db
       .select({ count: count() })
       .from(candidates)
@@ -66,6 +81,40 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { status, title, electionId } = body;
 
+    if (!hasNeonDatabaseUrl()) {
+      const local = readLocalDb();
+      const target = local.elections.find((e) => (electionId ? e.id === electionId : true)) || local.elections[0];
+      if (!target) {
+        return NextResponse.json({ success: false, error: "Eleição não encontrada." }, { status: 404 });
+      }
+
+      if (title && typeof title === "string") {
+        target.title = title.trim();
+      }
+      if (status) {
+        if (!["DRAFT", "OPEN", "CLOSED"].includes(status)) {
+          return NextResponse.json({ success: false, error: "Status inválido." }, { status: 400 });
+        }
+        target.status = status;
+        if (status === "OPEN") {
+          target.openedAt = new Date().toISOString();
+          target.closedAt = null;
+        } else if (status === "CLOSED") {
+          target.closedAt = new Date().toISOString();
+        } else if (status === "DRAFT") {
+          target.openedAt = null;
+          target.closedAt = null;
+        }
+      }
+
+      writeLocalDb(local);
+      return NextResponse.json({
+        success: true,
+        message: `Eleição atualizada para o status: ${target.status}`,
+        election: target,
+      });
+    }
+
     let targetId = electionId;
     if (!targetId) {
       const electionList = await db
@@ -86,20 +135,12 @@ export async function PATCH(request: NextRequest) {
     }
 
     const updatePayload: Partial<typeof elections.$inferInsert> = {};
-
-    if (title && typeof title === "string") {
-      updatePayload.title = title.trim();
-    }
-
+    if (title && typeof title === "string") updatePayload.title = title.trim();
     if (status) {
       if (!["DRAFT", "OPEN", "CLOSED"].includes(status)) {
-        return NextResponse.json(
-          { success: false, error: "Status inválido. Use DRAFT, OPEN ou CLOSED." },
-          { status: 400 }
-        );
+        return NextResponse.json({ success: false, error: "Status inválido." }, { status: 400 });
       }
       updatePayload.status = status;
-
       if (status === "OPEN") {
         updatePayload.openedAt = new Date();
         updatePayload.closedAt = null;

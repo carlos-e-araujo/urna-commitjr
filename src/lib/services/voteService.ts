@@ -1,9 +1,10 @@
 import { db } from "@/lib/db";
 import { votes, voterRecords, candidates } from "@/lib/db/schema";
-import { assertElectionIsOpen, ElectionGuardError } from "@/lib/voting/electionGuard";
+import { assertElectionIsOpen } from "@/lib/voting/electionGuard";
 import { checkIfVoterHasVoted } from "@/lib/voting/voterProtection";
 import { VoteSessionSubmission, VoteSubmissionResult } from "@/types/vote";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+import { hasNeonDatabaseUrl, readLocalDb, writeLocalDb } from "@/lib/db/localStore";
 
 export class VoteProcessingError extends Error {
   statusCode: number;
@@ -17,14 +18,6 @@ export class VoteProcessingError extends Error {
   }
 }
 
-/**
- * Processa a submissão atômica dos votos da sessão do eleitor.
- * Garante:
- * 1. Eleição ativa (OPEN)
- * 2. Unicidade de voto por eleitor/sessão
- * 3. Atomicidade da gravação no Neon PostgreSQL
- * 4. Sigilo 100% absoluto do voto (sem vínculo entre eleitor e a tabela `votes`)
- */
 export async function submitVotes(
   submission: VoteSessionSubmission,
   cookieToken?: string | null
@@ -69,7 +62,73 @@ export async function submitVotes(
     );
   }
 
-  // 3. Carrega candidatos da eleição para validar integridade de referências
+  // 3. Fallback Local Store
+  if (!hasNeonDatabaseUrl()) {
+    const local = readLocalDb();
+    const candidateMap = new Map(
+      local.candidates
+        .filter((c) => c.electionId === electionId)
+        .map((c) => [`${c.role.toLowerCase()}:${c.number}`, c])
+    );
+    const candidateMapById = new Map(
+      local.candidates.filter((c) => c.electionId === electionId).map((c) => [c.id, c])
+    );
+
+    const now = new Date().toISOString();
+    const votesToInsert = rawVotes.map((v, index) => {
+      const isBlank = Boolean(v.isBlank);
+      let isNull = Boolean(v.isNull);
+      let candidateId: string | null = null;
+
+      if (isBlank) {
+        candidateId = null;
+        isNull = false;
+      } else if (v.candidateId && candidateMapById.has(v.candidateId)) {
+        candidateId = v.candidateId;
+        isNull = false;
+      } else if (v.candidateNumber) {
+        const key = `${v.role.toLowerCase()}:${v.candidateNumber}`;
+        const candidate = candidateMap.get(key);
+        if (candidate) {
+          candidateId = candidate.id;
+          isNull = false;
+        } else {
+          isNull = true;
+        }
+      } else {
+        isNull = true;
+      }
+
+      return {
+        id: `vote-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 6)}`,
+        electionId,
+        candidateId,
+        role: v.role.trim(),
+        isBlank,
+        isNull,
+        createdAt: now,
+      };
+    });
+
+    local.voterRecords.push({
+      id: `voter-rec-${Date.now()}`,
+      electionId,
+      voterSignature,
+      votedAt: now,
+    });
+    local.votes.push(...votesToInsert);
+    writeLocalDb(local);
+
+    return {
+      success: true,
+      message: "Votos computados com sucesso na urna.",
+      recordedVotesCount: votesToInsert.length,
+      electionId,
+      voterSignature,
+    };
+  }
+
+  // 4. Modo Neon PostgreSQL
   const electionCandidates = await db
     .select({
       id: candidates.id,
@@ -84,7 +143,6 @@ export async function submitVotes(
     electionCandidates.map((c) => [`${c.role.toLowerCase()}:${c.number}`, c])
   );
 
-  // 4. Prepara os registros anônimos de votos
   const votesToInsert = rawVotes.map((v) => {
     if (!v.role || typeof v.role !== "string") {
       throw new VoteProcessingError(
@@ -107,7 +165,6 @@ export async function submitVotes(
         candidateId = candidate.id;
         isNull = false;
       } else {
-        // Se o candidateId fornecido não existir, converte para voto nulo
         candidateId = null;
         isNull = true;
       }
@@ -122,7 +179,6 @@ export async function submitVotes(
         isNull = true;
       }
     } else {
-      // Sem candidato e sem ser branco => nulo
       isNull = true;
     }
 
@@ -135,16 +191,13 @@ export async function submitVotes(
     };
   });
 
-  // 5. Execução Atômica de Persistência
   try {
-    // 5.1 Registra a presença/assinatura do eleitor (impede duplicação simultânea via Unique Constraint)
     await db.insert(voterRecords).values({
       electionId,
       voterSignature,
       votedAt: new Date(),
     });
 
-    // 5.2 Registra os votos de forma estritamente anônima (sem dados do eleitor)
     await db.insert(votes).values(votesToInsert);
 
     return {
@@ -155,7 +208,6 @@ export async function submitVotes(
       voterSignature,
     };
   } catch (error: any) {
-    // Tratamento de violação de restrição única (concorrência)
     if (error?.code === "23505" || error?.message?.includes("unique")) {
       throw new VoteProcessingError(
         "Voto já computado para este eleitor nesta eleição.",

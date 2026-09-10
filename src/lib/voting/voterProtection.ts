@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { voterRecords } from "@/lib/db/schema";
+import { hasNeonDatabaseUrl, readLocalDb } from "@/lib/db/localStore";
 
 const VOTER_SECRET =
   process.env.VOTER_COOKIE_SECRET ||
@@ -10,18 +11,12 @@ const VOTER_SECRET =
 
 export const VOTER_COOKIE_PREFIX = "urna_voted_";
 
-/**
- * Cria a assinatura criptográfica segura para o cookie HttpOnly
- */
 export function signVoterToken(electionId: string, voterSignature: string): string {
   const payload = `${electionId}:${voterSignature}:${Date.now()}`;
   const hmac = crypto.createHmac("sha256", VOTER_SECRET).update(payload).digest("hex");
   return `${Buffer.from(payload).toString("base64url")}.${hmac}`;
 }
 
-/**
- * Valida a integridade do token assinado do cookie HttpOnly
- */
 export function verifyVoterToken(token: string, electionId: string): boolean {
   try {
     const [payloadB64, signature] = token.split(".");
@@ -39,11 +34,6 @@ export function verifyVoterToken(token: string, electionId: string): boolean {
   }
 }
 
-/**
- * Gera um hash anônimo unidirecional para registro em voter_records.
- * Garante sigilo absoluto (não revela quem é o eleitor nem seu voto),
- * mas impede submissão duplicada no mesmo ciclo eleitoral.
- */
 export function generateAnonymousVoterSignature(
   electionId: string,
   clientSignature?: string | null,
@@ -62,16 +52,10 @@ export function generateAnonymousVoterSignature(
     .digest("hex");
 }
 
-/**
- * Nome do cookie para uma eleição específica
- */
 export function getVoterCookieName(electionId: string): string {
   return `${VOTER_COOKIE_PREFIX}${electionId}`;
 }
 
-/**
- * Opções padrão de segurança para o cookie HttpOnly de confirmação de voto
- */
 export function getVoterCookieOptions() {
   const isProduction = process.env.NODE_ENV === "production";
   return {
@@ -79,15 +63,10 @@ export function getVoterCookieOptions() {
     secure: isProduction,
     sameSite: "strict" as const,
     path: "/",
-    maxAge: 60 * 60 * 24 * 30, // 30 dias de retenção
+    maxAge: 60 * 60 * 24 * 30, // 30 dias
   };
 }
 
-/**
- * Verificação multicamada de voto já realizado:
- * 1. Camada 1: Cookie assinado HttpOnly
- * 2. Camada 2: Registro anônimo de presença na tabela `voter_records`
- */
 export async function checkIfVoterHasVoted(
   electionId: string,
   voterSignature: string,
@@ -101,7 +80,21 @@ export async function checkIfVoterHasVoted(
     };
   }
 
-  // 2. Verificação no banco de dados (tabela voter_records)
+  // 2. Verificação no banco de dados (tabela voter_records ou local store)
+  if (!hasNeonDatabaseUrl()) {
+    const local = readLocalDb();
+    const exists = local.voterRecords.some(
+      (r) => r.electionId === electionId && r.voterSignature === voterSignature
+    );
+    if (exists) {
+      return {
+        hasVoted: true,
+        reason: "Registro de votação já identificado para esta sessão/eleitor.",
+      };
+    }
+    return { hasVoted: false };
+  }
+
   const existingRecord = await db
     .select({ id: voterRecords.id })
     .from(voterRecords)

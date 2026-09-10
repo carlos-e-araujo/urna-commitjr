@@ -1,9 +1,10 @@
 import { eq, asc, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { elections, candidates } from "@/lib/db/schema";
-import { CandidateDisplay, Election } from "@/types/database";
+import { CandidateDisplay } from "@/types/database";
+import { hasNeonDatabaseUrl, readLocalDb } from "@/lib/db/localStore";
 
-// Ordem preferencial dos cargos padrão caso presentes
+// Ordem preferencial dos cargos padrão
 const DEFAULT_ROLE_ORDER = [
   "Presidente",
   "Vice-Presidente",
@@ -23,7 +24,7 @@ export interface ActiveElectionData {
 }
 
 /**
- * Ordena lista de cargos respeitando a ordem institucional padrão e mantendo cargos customizados ao final
+ * Ordena lista de cargos respeitando a ordem institucional padrão
  */
 export function sortRoles(roles: string[]): string[] {
   const uniqueRoles = Array.from(new Set(roles));
@@ -42,6 +43,25 @@ export function sortRoles(roles: string[]): string[] {
  * Busca a eleição atualmente aberta (OPEN)
  */
 export async function getActiveElection(): Promise<ActiveElectionData | null> {
+  if (!hasNeonDatabaseUrl()) {
+    const local = readLocalDb();
+    const active = local.elections.find((e) => e.status === "OPEN");
+    if (!active) return null;
+
+    const electionCandidates = local.candidates.filter((c) => c.electionId === active.id);
+    const rawRoles = electionCandidates.map((c) => c.role);
+    const sortedRoles = sortRoles(rawRoles);
+
+    return {
+      id: active.id,
+      title: active.title,
+      status: active.status,
+      openedAt: active.openedAt ? new Date(active.openedAt) : null,
+      createdAt: new Date(active.createdAt),
+      roles: sortedRoles,
+    };
+  }
+
   const activeElections = await db
     .select()
     .from(elections)
@@ -55,7 +75,6 @@ export async function getActiveElection(): Promise<ActiveElectionData | null> {
 
   const election = activeElections[0];
 
-  // Busca os cargos cadastrados para esta eleição
   const electionCandidates = await db
     .select({ role: candidates.role })
     .from(candidates)
@@ -80,17 +99,32 @@ export async function getActiveElection(): Promise<ActiveElectionData | null> {
 export async function getCandidatesByElectionId(
   electionId: string
 ): Promise<CandidateDisplay[]> {
-  const candidateList = await db
-    .select({
-      id: candidates.id,
-      name: candidates.name,
-      number: candidates.number,
-      role: candidates.role,
-      photoUrl: candidates.photoUrl,
-    })
-    .from(candidates)
-    .where(eq(candidates.electionId, electionId))
-    .orderBy(asc(candidates.role), asc(candidates.number));
+  let candidateList: CandidateDisplay[] = [];
+
+  if (!hasNeonDatabaseUrl()) {
+    const local = readLocalDb();
+    candidateList = local.candidates
+      .filter((c) => c.electionId === electionId)
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        number: c.number,
+        role: c.role,
+        photoUrl: c.photoUrl,
+      }));
+  } else {
+    candidateList = await db
+      .select({
+        id: candidates.id,
+        name: candidates.name,
+        number: candidates.number,
+        role: candidates.role,
+        photoUrl: candidates.photoUrl,
+      })
+      .from(candidates)
+      .where(eq(candidates.electionId, electionId))
+      .orderBy(asc(candidates.role), asc(candidates.number));
+  }
 
   // Ordena os candidatos considerando a ordem dos cargos
   return candidateList.sort((a, b) => {
@@ -118,21 +152,9 @@ export async function getCandidateByNumberAndRole(
   role: string,
   number: string
 ): Promise<CandidateDisplay | null> {
-  const result = await db
-    .select({
-      id: candidates.id,
-      name: candidates.name,
-      number: candidates.number,
-      role: candidates.role,
-      photoUrl: candidates.photoUrl,
-    })
-    .from(candidates)
-    .where(eq(candidates.electionId, electionId))
-    .limit(100);
-
-  const matched = result.find(
+  const all = await getCandidatesByElectionId(electionId);
+  const matched = all.find(
     (c) => c.role.toLowerCase() === role.toLowerCase() && c.number === number
   );
-
   return matched || null;
 }

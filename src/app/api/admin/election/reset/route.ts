@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, elections, votes, voterRecords } from "@/lib/db";
 import { eq, desc } from "drizzle-orm";
+import { hasNeonDatabaseUrl, readLocalDb, writeLocalDb } from "@/lib/db/localStore";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { electionId, resetStatusTo = "DRAFT", confirmationText } = body;
+    const { electionId, resetStatusTo = "OPEN", confirmationText } = body;
 
     if (confirmationText !== "ZERAR") {
       return NextResponse.json(
@@ -15,6 +16,32 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    if (!hasNeonDatabaseUrl()) {
+      const local = readLocalDb();
+      const target = local.elections.find((e) => (electionId ? e.id === electionId : true)) || local.elections[0];
+      if (!target) {
+        return NextResponse.json({ success: false, error: "Eleição não encontrada." }, { status: 404 });
+      }
+
+      local.votes = local.votes.filter((v) => v.electionId !== target.id);
+      local.voterRecords = local.voterRecords.filter((r) => r.electionId !== target.id);
+      target.status = resetStatusTo as "DRAFT" | "OPEN" | "CLOSED";
+      if (resetStatusTo === "OPEN") {
+        target.openedAt = new Date().toISOString();
+        target.closedAt = null;
+      } else {
+        target.openedAt = null;
+        target.closedAt = null;
+      }
+
+      writeLocalDb(local);
+      return NextResponse.json({
+        success: true,
+        message: "Eleição reiniciada com sucesso. Todos os votos e registros de presença foram zerados.",
+        election: target,
+      });
     }
 
     let targetId = electionId;
@@ -36,18 +63,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Remove todos os votos da eleição
     await db.delete(votes).where(eq(votes.electionId, targetId));
-
-    // Remove todos os registros de presença/auditoria da eleição
     await db.delete(voterRecords).where(eq(voterRecords.electionId, targetId));
 
-    // Atualiza status da eleição para DRAFT e limpa timestamps
     const [updatedElection] = await db
       .update(elections)
       .set({
         status: resetStatusTo as "DRAFT" | "OPEN" | "CLOSED",
-        openedAt: null,
+        openedAt: resetStatusTo === "OPEN" ? new Date() : null,
         closedAt: null,
       })
       .where(eq(elections.id, targetId))

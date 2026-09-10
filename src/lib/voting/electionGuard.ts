@@ -2,6 +2,7 @@ import { eq, desc } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { elections } from "@/lib/db/schema";
 import { ElectionStatus } from "@/types/database";
+import { hasNeonDatabaseUrl, readLocalDb } from "@/lib/db/localStore";
 
 export class ElectionGuardError extends Error {
   statusCode: number;
@@ -23,10 +24,6 @@ export interface ElectionGuardResult {
   message: string;
 }
 
-/**
- * Valida rigorosamente se a eleição especificada está no status OPEN.
- * Lança ElectionGuardError com status code apropriado (403 ou 404) caso não esteja.
- */
 export async function assertElectionIsOpen(electionId: string): Promise<{
   id: string;
   title: string;
@@ -40,25 +37,31 @@ export async function assertElectionIsOpen(electionId: string): Promise<{
     );
   }
 
-  const result = await db
-    .select({
-      id: elections.id,
-      title: elections.title,
-      status: elections.status,
-    })
-    .from(elections)
-    .where(eq(elections.id, electionId))
-    .limit(1);
+  let election: { id: string; title: string; status: string } | undefined;
 
-  if (result.length === 0) {
+  if (!hasNeonDatabaseUrl()) {
+    const local = readLocalDb();
+    election = local.elections.find((e) => e.id === electionId);
+  } else {
+    const result = await db
+      .select({
+        id: elections.id,
+        title: elections.title,
+        status: elections.status,
+      })
+      .from(elections)
+      .where(eq(elections.id, electionId))
+      .limit(1);
+    election = result[0];
+  }
+
+  if (!election) {
     throw new ElectionGuardError(
       "Eleição não encontrada.",
       404,
       "ELECTION_NOT_FOUND"
     );
   }
-
-  const election = result[0];
 
   if (election.status === "DRAFT") {
     throw new ElectionGuardError(
@@ -91,31 +94,38 @@ export async function assertElectionIsOpen(electionId: string): Promise<{
   };
 }
 
-/**
- * Consulta o status atual de uma eleição de forma não bloqueante.
- * Se nenhum electionId for informado, busca a eleição mais recente.
- */
 export async function getElectionStatus(electionId?: string): Promise<ElectionGuardResult | null> {
-  let query = db
-    .select({
-      id: elections.id,
-      title: elections.title,
-      status: elections.status,
-    })
-    .from(elections);
+  let election: { id: string; title: string; status: string } | undefined;
 
-  let result;
-  if (electionId) {
-    result = await query.where(eq(elections.id, electionId)).limit(1);
+  if (!hasNeonDatabaseUrl()) {
+    const local = readLocalDb();
+    if (electionId) {
+      election = local.elections.find((e) => e.id === electionId);
+    } else {
+      election = local.elections[0];
+    }
   } else {
-    result = await query.orderBy(desc(elections.createdAt)).limit(1);
+    let query = db
+      .select({
+        id: elections.id,
+        title: elections.title,
+        status: elections.status,
+      })
+      .from(elections);
+
+    let result;
+    if (electionId) {
+      result = await query.where(eq(elections.id, electionId)).limit(1);
+    } else {
+      result = await query.orderBy(desc(elections.createdAt)).limit(1);
+    }
+    election = result[0];
   }
 
-  if (result.length === 0) {
+  if (!election) {
     return null;
   }
 
-  const election = result[0];
   const isOpen = election.status === "OPEN";
 
   let message = "Eleição aberta e pronta para votação.";
