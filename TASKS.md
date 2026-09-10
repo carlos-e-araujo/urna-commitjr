@@ -184,7 +184,7 @@ flowchart TD
   - Retornar mensagens amigáveis de "Eleição não iniciada" ou "Eleição encerrada".
 - **Commit:** `feat(api): implementa guard de validacao de status da eleicao`
 
-#### `[ ]` TASK-303: Processamento Atômico de Votos (`/api/vote`)
+#### `[x]` TASK-303: Processamento Atômico de Votos (`/api/vote`)
 - **Objetivo:** Registrar votos no banco de dados com transação atômica, garantindo anonimato e integridade mesmo sob alta concorrência.
 - **Dependências:** `TASK-103`, `TASK-302`.
 - **Arquivos:** `src/app/api/vote/route.ts`, `src/lib/services/voteService.ts`, `src/types/vote.ts`.
