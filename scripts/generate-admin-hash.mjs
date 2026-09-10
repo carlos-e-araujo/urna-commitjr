@@ -54,10 +54,14 @@ console.log(`Senha informada: "${password}"`);
 
 generateHash(password)
   .then((hash) => {
-    console.log("\n✅ Hash PBKDF2-SHA256 gerado com sucesso:");
-    console.log("\n" + hash + "\n");
-    console.log("Adicione esta linha ao seu arquivo .env ou .env.local:");
-    console.log(`ADMIN_PASSWORD_HASH="${hash}"`);
+    console.log("\n✅ Hash PBKDF2-SHA256 gerado com sucesso:\n");
+    console.log(hash);
+    console.log("\n--------------------------------------------------");
+    console.log("📌 Como configurar na Vercel:");
+    console.log("   Key:   ADMIN_PASSWORD_HASH");
+    console.log(`   Value: ${hash}`);
+    console.log("\n📌 Como configurar no arquivo .env.local:");
+    console.log(`   ADMIN_PASSWORD_HASH="${hash}"`);
     console.log("==================================================");
   })
   .catch((err) => {
