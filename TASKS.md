@@ -165,7 +165,7 @@ flowchart TD
 
 #### 🔌 TRILHA B: API Core, Persistência & Voto Único (Agente 3)
 
-#### `[ ]` TASK-301: API de Consulta de Eleição e Candidatos Ativos
+#### `[x]` TASK-301: API de Consulta de Eleição e Candidatos Ativos
 - **Objetivo:** Disponibilizar endpoints para o frontend da urna obter a lista de cargos e candidatos da eleição em andamento de forma rápida e segura.
 - **Dependências:** `TASK-103`.
 - **Arquivos:** `src/app/api/election/active/route.ts`, `src/app/api/candidates/route.ts`, `src/lib/services/candidateService.ts`.
