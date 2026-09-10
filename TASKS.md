@@ -103,7 +103,7 @@ flowchart TD
   - `seed-candidatos.json` criado com a tipagem correspondente (`nome`, `numero`, `cargo`, `foto_url`).
 - **Commit:** `chore: migra assets de audio, imagens e seed de candidatos`
 
-#### `[ ]` TASK-103: Setup de Banco de Dados com Neon PostgreSQL & Drizzle ORM
+#### `[x]` TASK-103: Setup de Banco de Dados com Neon PostgreSQL & Drizzle ORM
 - **Objetivo:** Configurar cliente Neon Serverless, Drizzle ORM (ou Prisma), esquemas relacionais e migrações.
 - **Dependências:** `TASK-101`, `TASK-102`.
 - **Arquivos:** `src/lib/db/index.ts`, `src/lib/db/schema.ts`, `src/types/database.ts`, `drizzle.config.ts` (ou `prisma/schema.prisma`), `src/lib/db/seed.ts`.
