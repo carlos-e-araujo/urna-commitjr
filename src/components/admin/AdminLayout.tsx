@@ -57,9 +57,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
+    <div className="h-screen h-[100dvh] w-full bg-slate-950 text-slate-100 flex flex-col md:flex-row overflow-hidden select-auto">
       {/* Mobile Top Nav */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
+      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800 sticky top-0 z-40 shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="p-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
             <ShieldCheck className="w-5 h-5 text-emerald-400" />
@@ -81,7 +81,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       {/* Sidebar Desktop & Mobile Drawer */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-slate-900/95 border-r border-slate-800 flex flex-col justify-between transition-transform duration-300 md:static md:translate-x-0 backdrop-blur-md",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-slate-900/95 border-r border-slate-800 flex flex-col justify-between transition-transform duration-300 md:static md:translate-x-0 backdrop-blur-md shrink-0 h-full overflow-y-auto",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -163,9 +163,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         />
       )}
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {children}
+      {/* Main Content Area with functional vertical scroll */}
+      <main className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto overflow-x-hidden select-auto scroll-smooth">
+        <div className="flex-1 pb-16">
+          {children}
+        </div>
       </main>
     </div>
   );
