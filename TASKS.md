@@ -131,7 +131,7 @@ flowchart TD
   - Suporte a chamadas repetidas e rápidas de `playKeySound()` e `playEndSound()`.
 - **Commit:** `feat(audio): implementa engine web audio para tecla e encerramento`
 
-#### `[ ]` TASK-202: Layout Base da Urna (`100dvh` Sem Scroll) e Display LCD
+#### `[x]` TASK-202: Layout Base da Urna (`100dvh` Sem Scroll) e Display LCD
 - **Objetivo:** Construir o contêiner visual da urna eletrônica respeitando proporções reais, com layout sem rolagem em qualquer dispositivo.
 - **Dependências:** `TASK-101`.
 - **Arquivos:** `src/components/urna/UrnaContainer.tsx`, `src/components/urna/DisplayLCD.tsx`, `src/components/urna/CandidatePreview.tsx`.
@@ -175,7 +175,7 @@ flowchart TD
   - Não expor parciais de votação nem dados sensíveis.
 - **Commit:** `feat(api): cria endpoints publicos de consulta de eleicao e candidatos`
 
-#### `[ ]` TASK-302: Middleware & Serviço de Controle de Ciclo da Eleição
+#### `[x]` TASK-302: Middleware & Serviço de Controle de Ciclo da Eleição
 - **Objetivo:** Criar camada de validação que bloqueia requisições de voto se a eleição estiver no status `DRAFT` ou `CLOSED`.
 - **Dependências:** `TASK-103`.
 - **Arquivos:** `src/lib/voting/electionGuard.ts`, `src/app/api/election/status/route.ts`.

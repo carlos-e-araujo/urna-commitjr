@@ -1,0 +1,43 @@
+/* Urna Eletrônica Design System & Custom Styles */
+
+@keyframes lcd-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.animate-lcd-cursor {
+  animation: lcd-blink 0.8s step-start infinite;
+}
+
+.lcd-screen-shadow {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.urna-bevel-casing {
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.3),
+    0 8px 10px -6px rgba(0, 0, 0, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.6),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.urna-key-3d {
+  box-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.4),
+    0 5px 6px rgba(0, 0, 0, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
+}
+
+.urna-key-3d:active,
+.urna-key-3d.key-pressed {
+  transform: translateY(3px);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.4),
+    0 2px 3px rgba(0, 0, 0, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
